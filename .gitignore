@@ -1,0 +1,33 @@
+# OS-specific
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Backup files
+*.bak
+*.backup
+
+# Editor-specific
+.vscode/
+.idea/
+*.sublime-*
+
+# Test files
+test/
+*.test.sh
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Logs
+*.log
+
+# Don't ignore example configurations
+!examples/
+
+# But ignore user-specific test configs
+test-config.sh
