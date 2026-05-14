@@ -672,17 +672,15 @@ Use bmad-help to ensure proper retrospective format."
             check_git_clean
         fi
         
-        PROMPT="Create a story definition file for ${STORY_KEY} following the BMAD-METHOD.
+        PROMPT="Read the epic file in ${STORIES_DIR}/ and create a new story file ${STORIES_DIR}/${STORY_KEY}.md for story ${STORY_KEY}.
 
-Read the epic file in ${STORIES_DIR}/ to understand requirements, then create ${STORY_KEY}.md with:
-- Story context and overview
-- Acceptance criteria (specific, testable)
-- Technical approach and implementation notes
-- Dependencies and prerequisites
+The file must include:
+1. Story title and context
+2. Specific, testable acceptance criteria  
+3. Technical implementation approach
+4. Dependencies and prerequisites
 
-Use the BMAD story template structure. Keep it focused and actionable.
-
-Summarize what was created when done."
+Follow BMAD-METHOD story structure. Write the file now and confirm when done."
 
         run_ai "$PROMPT" "$CLI" "$MODEL"
         update_status "$STORY_KEY" "ready-for-dev"
