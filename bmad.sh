@@ -10,22 +10,37 @@
 
 set -e
 
-# CLI binaries
-CLAUDE_BIN="/Users/rc-macpro-2/.local/bin/claude"
-COPILOT_BIN="/usr/local/bin/copilot"
+# Load configuration from bmad-config.sh if it exists
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -f "$SCRIPT_DIR/bmad-config.sh" ]; then
+    source "$SCRIPT_DIR/bmad-config.sh"
+else
+    echo "Warning: bmad-config.sh not found, using defaults"
+fi
 
-# Default models for each phase (customize these!)
-DEFAULT_CREATE_CLI="claude"
-DEFAULT_CREATE_MODEL="sonnet"
+# Set defaults if not configured
+: ${BMAD_CLAUDE_BIN:="claude"}
+: ${BMAD_COPILOT_BIN:="copilot"}
+: ${BMAD_CREATE_CLI:="claude"}
+: ${BMAD_CREATE_MODEL:="sonnet"}
+: ${BMAD_DEV_CLI:="claude"}
+: ${BMAD_DEV_MODEL:="claude-sonnet-4-6"}
+: ${BMAD_REVIEW_CLI:="copilot"}
+: ${BMAD_REVIEW_MODEL:="gpt-5.3-codex"}
+: ${BMAD_STATUS_FILE:="_bmad-output/implementation-artifacts/sprint-status.yaml"}
+: ${BMAD_STORIES_DIR:="_bmad-output/implementation-artifacts"}
 
-DEFAULT_DEV_CLI="claude"
-DEFAULT_DEV_MODEL="claude-sonnet-4-6"
-
-DEFAULT_REVIEW_CLI="copilot"
-DEFAULT_REVIEW_MODEL="gpt-5.3-codex"
-
-STATUS_FILE="_bmad-output/implementation-artifacts/sprint-status.yaml"
-STORIES_DIR="_bmad-output/implementation-artifacts"
+# Use config values
+CLAUDE_BIN="$BMAD_CLAUDE_BIN"
+COPILOT_BIN="$BMAD_COPILOT_BIN"
+DEFAULT_CREATE_CLI="$BMAD_CREATE_CLI"
+DEFAULT_CREATE_MODEL="$BMAD_CREATE_MODEL"
+DEFAULT_DEV_CLI="$BMAD_DEV_CLI"
+DEFAULT_DEV_MODEL="$BMAD_DEV_MODEL"
+DEFAULT_REVIEW_CLI="$BMAD_REVIEW_CLI"
+DEFAULT_REVIEW_MODEL="$BMAD_REVIEW_MODEL"
+STATUS_FILE="$BMAD_STATUS_FILE"
+STORIES_DIR="$BMAD_STORIES_DIR"
 
 # Colors for output
 GREEN='\033[0;32m'
@@ -49,13 +64,15 @@ update_status() {
     echo -e "${BLUE}Updating status: ${story_key} → ${new_status}${NC}"
     
     # Use sed to update the status (macOS compatible)
-    sed -i '' "s/^  ${story_key}: .*$/  ${story_key}: ${new_status}/" "$STATUS_FILE"
+    # Match story key as prefix, then replace everything after the colon
+    sed -i '' "/^  ${story_key}[^:]*:/s/:.*$/: ${new_status}/" "$STATUS_FILE"
 }
 
 # Function to get current story status
 get_status() {
     local story_key=$1
-    grep "^  ${story_key}:" "$STATUS_FILE" 2>/dev/null | awk '{print $2}'
+    # Match the story key as a prefix (handles both "2-7" and full "2-7-three-resolution-types")
+    grep "^  ${story_key}[:-]" "$STATUS_FILE" 2>/dev/null | awk '{print $2}'
 }
 
 # Function to check if git working directory is clean
@@ -63,11 +80,17 @@ check_git_clean() {
     if ! git diff-index --quiet HEAD -- 2>/dev/null; then
         echo -e "${RED}⚠ Warning: Git working directory has uncommitted changes${NC}"
         echo -e "${YELLOW}This may cause conflicts with automated commits${NC}"
-        read -q "REPLY?Continue anyway? (y/n) "
-        echo
-        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            echo -e "${RED}Aborted${NC}"
-            exit 1
+        
+        # Check if we're in an interactive terminal
+        if [[ -t 0 ]]; then
+            read -q "REPLY?Continue anyway? (y/n) "
+            echo
+            if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                echo -e "${RED}Aborted${NC}"
+                exit 1
+            fi
+        else
+            echo -e "${YELLOW}Non-interactive mode: Continuing anyway...${NC}"
         fi
     fi
 }
@@ -75,10 +98,12 @@ check_git_clean() {
 # Function to validate story file exists
 validate_story_file() {
     local story_key=$1
-    local story_file="${STORIES_DIR}/${story_key}.md"
     
-    if [ ! -f "$story_file" ]; then
-        echo -e "${RED}✗ Story file not found: ${story_file}${NC}"
+    # Find story file by prefix (e.g., "2-7" matches "2-7-three-resolution-types.md")
+    local story_file=$(ls "${STORIES_DIR}/${story_key}"*.md 2>/dev/null | head -1)
+    
+    if [ -z "$story_file" ] || [ ! -f "$story_file" ]; then
+        echo -e "${RED}✗ Story file not found: ${STORIES_DIR}/${story_key}*.md${NC}"
         echo -e "${YELLOW}Run: ./bmad.sh create-story ${story_key}${NC}"
         return 1
     fi
@@ -191,6 +216,23 @@ show_epic_status() {
     echo ""
 }
 
+# Function to show a progress spinner
+show_progress() {
+    local pid=$1
+    local delay=0.5
+    local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    local elapsed=0
+    
+    while kill -0 $pid 2>/dev/null; do
+        local temp=${spinstr#?}
+        printf " [${CYAN}%c${NC}] Working... (%ds elapsed)\r" "$spinstr" $elapsed
+        spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        elapsed=$((elapsed + 1))
+    done
+    printf "                                                    \r"
+}
+
 # Function to run AI with a prompt
 run_ai() {
     local prompt=$1
@@ -198,22 +240,35 @@ run_ai() {
     local model=$3
     
     echo -e "${CYAN}Using: ${cli} with model ${model}${NC}"
+    echo -e "${YELLOW}⏳ This may take 1-15 minutes depending on complexity...${NC}"
     
     if [ "$cli" = "claude" ]; then
         if [ -n "$model" ]; then
-            echo "$prompt" | $CLAUDE_BIN --print --model "$model"
+            echo "$prompt" | $CLAUDE_BIN --print --dangerously-skip-permissions --model "$model" &
         else
-            echo "$prompt" | $CLAUDE_BIN --print
+            echo "$prompt" | $CLAUDE_BIN --print --dangerously-skip-permissions &
         fi
+        local ai_pid=$!
+        show_progress $ai_pid
+        wait $ai_pid
+        return $?
     elif [ "$cli" = "copilot" ]; then
         if [ -n "$model" ]; then
-            echo "$prompt" | $COPILOT_BIN --prompt - --model "$model"
+            echo "$prompt" | $COPILOT_BIN --prompt - --model "$model" &
         else
-            echo "$prompt" | $COPILOT_BIN --prompt -
+            echo "$prompt" | $COPILOT_BIN --prompt - &
         fi
+        local ai_pid=$!
+        show_progress $ai_pid
+        wait $ai_pid
+        return $?
     else
         echo -e "${YELLOW}Unknown CLI: $cli, falling back to claude${NC}"
-        echo "$prompt" | $CLAUDE_BIN --print
+        echo "$prompt" | $CLAUDE_BIN --print &
+        local ai_pid=$!
+        show_progress $ai_pid
+        wait $ai_pid
+        return $?
     fi
 }
 
@@ -478,13 +533,19 @@ Use bmad-help to ensure proper retrospective format."
         echo -e "${BOLD}${CYAN}║         Running Full Cycle for ${STORY_KEY}                  ║${NC}"
         echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════╝${NC}\n"
         
+        # Do git check once at the start
+        check_git_clean
+        
         local story_status=$(get_status "$STORY_KEY")
         
         # Determine starting phase based on status
         if [[ "$story_status" == "backlog" ]]; then
             echo -e "${CYAN}Phase 1/3: Creating Story${NC}\n"
-            $0 create-story "$STORY_KEY" ${USE_CLI:+--cli $USE_CLI} ${USE_MODEL:+--model $USE_MODEL}
-            story_status="ready-for-dev"
+            if ! $0 create-story "$STORY_KEY" --skip-validation ${USE_CLI:+--cli $USE_CLI} ${USE_MODEL:+--model $USE_MODEL}; then
+                echo -e "${RED}✗ create-story failed${NC}"
+                exit 1
+            fi
+            story_status=$(get_status "$STORY_KEY")
             echo ""
         fi
         
@@ -493,8 +554,11 @@ Use bmad-help to ensure proper retrospective format."
             read
             
             echo -e "${CYAN}Phase 2/3: Implementing Story${NC}\n"
-            $0 dev-story "$STORY_KEY" ${USE_CLI:+--cli $USE_CLI} ${USE_MODEL:+--model $USE_MODEL}
-            story_status="review"
+            if ! $0 dev-story "$STORY_KEY" --skip-validation ${USE_CLI:+--cli $USE_CLI} ${USE_MODEL:+--model $USE_MODEL}; then
+                echo -e "${RED}✗ dev-story failed${NC}"
+                exit 1
+            fi
+            story_status=$(get_status "$STORY_KEY")
             echo ""
         fi
         
@@ -504,7 +568,11 @@ Use bmad-help to ensure proper retrospective format."
             read
             
             echo -e "${CYAN}Phase 3/3: Code Review${NC}\n"
-            $0 code-review "$STORY_KEY" ${USE_CLI:+--cli $USE_CLI} ${USE_MODEL:+--model $USE_MODEL}
+            if ! $0 code-review "$STORY_KEY" --skip-validation ${USE_CLI:+--cli $USE_CLI} ${USE_MODEL:+--model $USE_MODEL}; then
+                echo -e "${RED}✗ code-review failed${NC}"
+                exit 1
+            fi
+            story_status=$(get_status "$STORY_KEY")
             echo ""
         fi
         
@@ -578,7 +646,7 @@ When complete, summarize what was created."
 IMPORTANT: First invoke the bmad-help skill to validate workflow state and ensure story is ready for development.
 
 1. Read the story file ${STORIES_DIR}/${STORY_KEY}.md
-2. Implement all requirements in the your project
+2. Implement all requirements in the Godot project
 3. Follow the technical approach specified in the story
 4. Update the story file with implementation notes
 5. Test that the implementation works
@@ -626,7 +694,7 @@ IMPORTANT: First invoke the bmad-help skill to validate that the story is in the
 1. Read the story file ${STORIES_DIR}/${STORY_KEY}.md
 2. Review all code changes for this story
 3. Check for:
-   - Code quality and best practices for your technology
+   - Code quality and Godot best practices
    - Performance issues
    - Edge cases and error handling
    - Documentation and comments

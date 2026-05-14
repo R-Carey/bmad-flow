@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-05-13
+
+### Added
+- Progress spinner with elapsed time for AI commands
+- Warning message about command duration (1-15 minutes)
+- Non-interactive mode support for automation/CI/CD
+
+### Fixed
+- Config loading: properly sources `bmad-config.sh` for project-specific settings
+- Story key pattern matching: handles full story names (e.g., `2-7` matches `2-7-three-resolution-types`)
+- `get_status()` now uses prefix matching with glob patterns
+- `update_status()` preserves full story names when updating status
+- `validate_story_file()` finds files by prefix pattern instead of exact match
+- Git checks now detect terminal interactivity and auto-continue in non-interactive mode
+- Cycle command properly checks actual status after each phase instead of assuming success
+- Nested git checks skipped in sub-commands (uses `--skip-validation` flag)
+- Claude CLI permission handling with `--dangerously-skip-permissions` for automation
+
+### Changed
+- `cycle` command now validates each phase completion before proceeding
+- AI commands run in background with progress indicator
+- Git warnings auto-continue in non-interactive environments
+
 ## [1.0.0] - 2026-05-13
 
 ### Added
