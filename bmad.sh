@@ -308,9 +308,9 @@ run_ai() {
         
     elif [ "$cli" = "copilot" ]; then
         if [ -n "$model" ]; then
-            echo "$prompt" | $COPILOT_BIN --prompt - --model "$model" > "$output_file" 2>&1 &
+            $COPILOT_BIN -p "$prompt" --model "$model" --allow-all-tools > "$output_file" 2>&1 &
         else
-            echo "$prompt" | $COPILOT_BIN --prompt - > "$output_file" 2>&1 &
+            $COPILOT_BIN -p "$prompt" --allow-all-tools > "$output_file" 2>&1 &
         fi
         local ai_pid=$!
         show_progress $ai_pid
@@ -323,7 +323,7 @@ run_ai() {
         return $exit_code
     else
         echo -e "${YELLOW}Unknown CLI: $cli, falling back to claude${NC}"
-        echo "$prompt" | $CLAUDE_BIN --print > "$output_file" 2>&1 &
+        echo "$prompt" | $CLAUDE_BIN --print --dangerously-skip-permissions > "$output_file" 2>&1 &
         local ai_pid=$!
         show_progress $ai_pid
         wait $ai_pid
@@ -404,16 +404,22 @@ if [ -z "$COMMAND" ]; then
     echo -e "  --model <model-name>      Choose specific model"
     echo -e "  --skip-validation         Skip pre-flight checks"
     echo ""
-    echo -e "${BOLD}SWITCHING MODELS/PROVIDERS:${NC}"
-    echo -e "  ${GREEN}Use Copilot (GPT) instead of Claude:${NC}"
-    echo -e "    ./bmad.sh create-story 2-8 --cli copilot --model gpt-5.3-codex"
-    echo -e "    ./bmad.sh dev-story 2-8 --cli copilot"
-    echo -e "    ./bmad.sh cycle 2-8 --cli copilot"
+    echo -e "${BOLD}MODEL SELECTION (Choose best model for each phase):${NC}"
     echo ""
-    echo -e "  ${GREEN}Use different Claude model:${NC}"
-    echo -e "    ./bmad.sh dev-story 2-8 --cli claude --model opus"
+    echo -e "  ${GREEN}For complex implementation - use most capable:${NC}"
+    echo -e "    ./bmad.sh dev-story 2-8 --cli claude --model claude-opus-4-7-high"
     echo ""
-    echo -e "  ${YELLOW}💡 Tip: Each provider (Claude/Copilot) has separate rate limits!${NC}"
+    echo -e "  ${GREEN}For fast iteration - use efficient model:${NC}"
+    echo -e "    ./bmad.sh create-story 2-8 --cli claude --model claude-sonnet-4-6"
+    echo ""
+    echo -e "  ${GREEN}For analytical code review - use GPT:${NC}"
+    echo -e "    ./bmad.sh code-review 2-8 --cli copilot --model gpt-5.3-codex"
+    echo ""
+    echo -e "  ${GREEN}Full cycle with specific model:${NC}"
+    echo -e "    ./bmad.sh cycle 2-8 --cli copilot --model gpt-5.5-medium"
+    echo ""
+    echo -e "  ${YELLOW}💡 Tip: Claude & Copilot have separate rate limits - switch if one is limited!${NC}"
+    echo -e "  ${YELLOW}💡 Best practice: Use DIFFERENT models for dev vs review to catch more bugs!${NC}"
     echo ""
     echo -e "${BOLD}DEFAULTS (edit bmad-config.sh to customize):${NC}"
     echo -e "  create-story: ${DEFAULT_CREATE_CLI} (${DEFAULT_CREATE_MODEL})"

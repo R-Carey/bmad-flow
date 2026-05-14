@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-05-14
+
+### BREAKING: Philosophy Change - Model-Centric Configuration
+- **NEW APPROACH**: Choose best MODEL for each task, not CLI provider
+- Config now recommends models with explanations of their strengths
+- Examples: "use opus for complex" not "use Claude"
+- Each CLI (Claude/Copilot) supports multiple models
+
+### Fixed
+- **Copilot CLI syntax**: Use `-p "prompt"` instead of `echo | --prompt -`
+- **Copilot now works!**: Was completely broken, now functional
+- Added `--allow-all-tools` for Copilot automation
+- Context7 used to verify correct Copilot CLI usage
+
+### Added
+- Model-centric help text with use-case examples
+- Model reference guide in bmad-config.sh
+- Alternative model suggestions for each phase
+- Clear explanations of when to use which model
+
+### Documentation
+- Help shows "for complex use opus" not "use Claude"
+- Config explains model strengths (creative vs analytical)
+- Recommends using different models for dev vs review
+- Tip: Both providers have separate rate limits
+
 ## [1.2.0] - 2026-05-14
 
 ### Added
