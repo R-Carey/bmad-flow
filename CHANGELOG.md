@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-05-13
+
+### Added
+- Periodic status updates every 60 seconds during AI operations
+- Warning message at 20 minutes if process might be stuck
+- Better visibility to distinguish working vs hung processes
+
+### Changed
+- Improved code-review prompt for Copilot CLI compatibility
+- More actionable, direct language for GPT models
+
 ## [1.1.0] - 2026-05-13
 
 ### Added

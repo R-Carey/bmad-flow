@@ -216,12 +216,13 @@ show_epic_status() {
     echo ""
 }
 
-# Function to show a progress spinner
+# Function to show a progress spinner with periodic updates
 show_progress() {
     local pid=$1
     local delay=0.5
     local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
     local elapsed=0
+    local last_update=0
     
     while kill -0 $pid 2>/dev/null; do
         local temp=${spinstr#?}
@@ -229,6 +230,19 @@ show_progress() {
         spinstr=$temp${spinstr%"$temp"}
         sleep $delay
         elapsed=$((elapsed + 1))
+        
+        # Print periodic status update every 30 seconds
+        if [ $((elapsed % 60)) -eq 0 ] && [ $elapsed -ne $last_update ]; then
+            printf "\n"
+            echo -e "${YELLOW}⏱  Still working... ${elapsed}s elapsed (this is normal for complex tasks)${NC}"
+            last_update=$elapsed
+        fi
+        
+        # Warning after 20 minutes
+        if [ $elapsed -eq 1200 ]; then
+            printf "\n"
+            echo -e "${YELLOW}⚠️  20 minutes elapsed - AI might be stuck. You can Ctrl+C to interrupt.${NC}"
+        fi
     done
     printf "                                                    \r"
 }
