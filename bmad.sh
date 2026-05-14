@@ -478,6 +478,7 @@ if [ -z "$COMMAND" ]; then
     echo -e "  ${YELLOW}cycle${NC} <story-key>          Run full cycle for one story (all phases)"
     echo ""
     echo -e "${BOLD}UTILITY COMMANDS:${NC}"
+    echo -e "  ${BLUE}next${NC}                       Show what to do next (recommended command)"
     echo -e "  ${BLUE}status${NC} [epic-num]          Show epic progress and story status"
     echo -e "  ${BLUE}usage${NC}                      Show today's AI token/request usage"
     echo -e "  ${BLUE}retro${NC} <epic-num>           Generate epic retrospective"
@@ -549,6 +550,79 @@ case $COMMAND in
         show_session_usage
         exit 0
         ;;
+    
+    next)
+        # Show what to do next
+        echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${BOLD}${CYAN}║                    What's Next?                           ║${NC}"
+        echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════╝${NC}\n"
+        
+        # Find the current active epic
+        local active_epic=$(grep "^  epic-[0-9]*:" "$STATUS_FILE" | grep "in-progress" | head -1 | sed 's/.*epic-\([0-9]*\).*/\1/')
+        
+        if [ -z "$active_epic" ]; then
+            echo -e "${YELLOW}No active epic found. Start one with: ./bmad.sh cycle <story-key>${NC}"
+            exit 0
+        fi
+        
+        echo -e "${CYAN}Active Epic:${NC} ${active_epic}"
+        echo ""
+        
+        # Find first non-done story and its status
+        local next_story=""
+        local next_status=""
+        local next_cmd=""
+        
+        while IFS= read -r story; do
+            local s_status=$(get_status "$story")
+            if [ "$s_status" != "done" ]; then
+                next_story="$story"
+                next_status="$s_status"
+                break
+            fi
+        done <<< "$(get_epic_stories "$active_epic")"
+        
+        if [ -z "$next_story" ]; then
+            echo -e "${GREEN}✓ All stories in Epic ${active_epic} are done!${NC}"
+            echo -e "${YELLOW}Run: ./bmad.sh retro ${active_epic}${NC}"
+            exit 0
+        fi
+        
+        # Determine the right command based on status
+        case $next_status in
+            backlog)
+                next_cmd="./bmad.sh create-story ${next_story}"
+                echo -e "${CYAN}Next Story:${NC} ${next_story} (${next_status})"
+                echo -e "${CYAN}Action:${NC}     Create the story definition"
+                ;;
+            ready-for-dev)
+                next_cmd="./bmad.sh dev-story ${next_story}"
+                echo -e "${CYAN}Next Story:${NC} ${next_story} (${next_status})"
+                echo -e "${CYAN}Action:${NC}     Implement the story"
+                ;;
+            in-progress|review)
+                next_cmd="./bmad.sh code-review ${next_story}"
+                echo -e "${CYAN}Next Story:${NC} ${next_story} (${next_status})"
+                echo -e "${CYAN}Action:${NC}     Run code review"
+                ;;
+        esac
+        
+        echo ""
+        echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${GREEN}▶ Run:${NC}  ${BOLD}${next_cmd}${NC}"
+        echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo ""
+        echo -e "${YELLOW}Or run full automated cycle:${NC} ${BOLD}./bmad.sh cycle ${next_story}${NC}"
+        echo ""
+        
+        # Show quick progress
+        local total=$(get_epic_stories "$active_epic" | wc -l | tr -d ' ')
+        local done_count=$(count_stories_by_status "$active_epic" "done")
+        echo -e "${CYAN}Epic ${active_epic} Progress:${NC}"
+        draw_progress_bar "$done_count" "$total"
+        echo ""
+        exit 0
+        ;;
         
     status)
         # Show epic status
@@ -589,7 +663,7 @@ case $COMMAND in
         echo -e "   Current status: ${CYAN}${story_status}${NC}"
         echo -e "${GREEN}✓ Status check complete${NC}\n"
         
-        # Validate project artifacts if story is in dev/review
+        # Validate Godot artifacts if story is in dev/review
         if [[ "$story_status" == "in-progress" || "$story_status" == "review" ]]; then
             echo -e "${BLUE}4. Validating project artifacts...${NC}"
             validate_project_artifacts "$STORY_KEY"
