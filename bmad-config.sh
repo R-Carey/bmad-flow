@@ -1,9 +1,10 @@
 #!/bin/zsh
 
 # ============================================================================
-# BMAD Flow - Godot Game Configuration
+# BMAD Flow - Project Configuration Template
 # ============================================================================
-# Configuration for Seasons of Stillness (Godot project)
+# Copy this file to your project and customize for your setup.
+# See examples/ folder for framework-specific configurations.
 # ============================================================================
 
 # ─────────────────────────────────────────────────────────────────────────
@@ -13,78 +14,65 @@ export BMAD_STATUS_FILE="_bmad-output/implementation-artifacts/sprint-status.yam
 export BMAD_STORIES_DIR="_bmad-output/implementation-artifacts"
 
 # ─────────────────────────────────────────────────────────────────────────
-# TECHNOLOGY STACK
+# CLI BINARIES (adjust paths for your system)
 # ─────────────────────────────────────────────────────────────────────────
-export BMAD_TECH_STACK="Godot"
-
-# ─────────────────────────────────────────────────────────────────────────
-# FILE EXTENSIONS
-# ─────────────────────────────────────────────────────────────────────────
-# Godot file types to validate during code review
-export BMAD_FILE_EXTENSIONS=".gd .tscn .tres"
-
-# ─────────────────────────────────────────────────────────────────────────
-# CLI BINARIES
-# ─────────────────────────────────────────────────────────────────────────
-export BMAD_CLAUDE_BIN="/Users/rc-macpro-2/.local/bin/claude"
-export BMAD_COPILOT_BIN="/usr/local/bin/copilot"
+export BMAD_CLAUDE_BIN="claude"
+export BMAD_COPILOT_BIN="copilot"
 
 # ─────────────────────────────────────────────────────────────────────────
 # DEFAULT AI MODELS (Model-Centric Configuration)
 # ─────────────────────────────────────────────────────────────────────────
 # Choose the best MODEL for each phase, not the CLI provider!
-# Both Claude and Copilot support multiple models with different strengths.
+# Both CLIs support multiple models with different strengths.
 #
 # 🎯 RECOMMENDED MODEL STRATEGY:
 #
-# Phase 1 - Create Story (Documentation & Planning):
-#   Best: claude-sonnet-4-6    (fast, concise, structured)
-#   Alt:  gpt-5.3-codex        (good at breaking down requirements)
+# Phase 1 - Create Story (Planning, fast turnaround):
+#   Best: sonnet                  (fast, concise, structured)
+#   Alt:  gpt-5.3-codex           (good at decomposing requirements)
 #
-# Phase 2 - Implementation (Code Generation):
-#   Best: claude-opus-4-7-high (most capable, best for complex Godot)
-#   Alt:  claude-sonnet-4-6    (faster, good for simpler stories)
-#   Alt:  gpt-5.5-medium       (strong at GDScript patterns)
+# Phase 2 - Implementation (Complex code generation):
+#   Best: claude-sonnet-4-6       (balanced speed + quality)
+#   Alt:  claude-opus-4-7-high    (most capable, complex tasks)
+#   Alt:  gpt-5.5-medium          (strong general coding)
 #
-# Phase 3 - Code Review (Analysis & Bug Detection):
-#   Best: gpt-5.3-codex        (analytical, catches edge cases)
-#   Alt:  claude-sonnet-4-6    (good second opinion)
+# Phase 3 - Code Review (Analytical, bug detection):
+#   Best: gpt-5.3-codex           (analytical, catches edge cases)
+#   Alt:  claude-sonnet-4-6       (good second opinion)
 #
-# 💡 TIP: Use DIFFERENT models for dev vs review to catch more issues!
+# 💡 TIP: Use DIFFERENT models for dev vs review to catch more bugs!
 # ─────────────────────────────────────────────────────────────────────────
 
 # Phase 1: Create Story
 export BMAD_CREATE_CLI="claude"
-export BMAD_CREATE_MODEL="claude-sonnet-4-6"
+export BMAD_CREATE_MODEL="sonnet"
 
-# Phase 2: Implementation  
+# Phase 2: Implementation
 export BMAD_DEV_CLI="claude"
-export BMAD_DEV_MODEL="claude-sonnet-4-6"        # or: claude-opus-4-7-high, gpt-5.5-medium
+export BMAD_DEV_MODEL="claude-sonnet-4-6"
 
-# Phase 3: Code Review (different model for fresh perspective!)
+# Phase 3: Code Review (different model = fresh perspective!)
 export BMAD_REVIEW_CLI="copilot"
-export BMAD_REVIEW_MODEL="gpt-5.3-codex"         # or: claude-sonnet-4-6
+export BMAD_REVIEW_MODEL="gpt-5.3-codex"
 
 # ─────────────────────────────────────────────────────────────────────────
 # MODEL REFERENCE
 # ─────────────────────────────────────────────────────────────────────────
 # CLAUDE CLI (--cli claude):
-#   Supports: Claude models only
-#   - sonnet, claude-sonnet-4-6      - Fast, efficient, great for most tasks
-#   - opus, claude-opus-4-7-high     - Most capable, best for complex code  
-#   - haiku                          - Fastest, simple tasks only
+#   - sonnet, claude-sonnet-4-6      Fast, efficient, great for most tasks
+#   - opus, claude-opus-4-7-high     Most capable, complex implementation
+#   - haiku                          Fastest, simple tasks only
 #
 # COPILOT CLI (--cli copilot):
-#   Supports: BOTH GPT and Claude models!
-#   GPT models:
-#     - gpt-5.4 (default)            - Latest GPT, balanced performance
-#     - gpt-5.3-codex                - Excellent for code analysis & review
-#     - gpt-5.5-medium               - Strong general coding capability
-#     - gpt-4                        - Solid fallback option
-#   Claude models:
-#     - claude-sonnet-4.6            - Fast, efficient (with effort levels!)
-#     - claude-sonnet-4.5            - Previous generation, still strong
-#     - claude-haiku-4.5             - Fastest Claude option
+#   Supports BOTH GPT and Claude models!
+#   GPT:
+#     - gpt-5.4 (default)            Latest GPT, balanced
+#     - gpt-5.3-codex                Excellent for code review
+#     - gpt-5.5-medium               Strong general coding
+#   Claude (via Copilot):
+#     - claude-sonnet-4.6            Fast, efficient (supports effort levels)
+#     - claude-haiku-4.5             Fastest option
 #
-# 💡 TIP: Copilot CLI supports effort levels for Claude models (low/medium/high)
+# 💡 Claude & Copilot have SEPARATE rate limits - switch if one hits limit!
+# 💡 Copilot supports effort levels for Claude models (low/medium/high)
 # ─────────────────────────────────────────────────────────────────────────

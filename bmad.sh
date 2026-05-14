@@ -1,11 +1,11 @@
 #!/bin/zsh
 
 # ============================================================================
-# BMAD Game Dev Studio - Workflow Automation Script
+# BMAD Flow - Workflow Automation Script
 # ============================================================================
-# Automates the BMAD-METHOD development cycle for game development
+# Automates the BMAD-METHOD development cycle for any project.
 # Supports: create-story, dev-story, code-review, epic processing, retrospectives
-# Documentation: See BMAD-WORKFLOWS.md for detailed usage
+# Documentation: See docs/BMAD-WORKFLOWS.md for detailed usage
 # ============================================================================
 
 set -e
@@ -110,25 +110,19 @@ validate_story_file() {
     return 0
 }
 
-# Function to check Godot artifacts (basic validation)
-validate_godot_artifacts() {
+# Function to validate project artifacts (extensible per tech stack)
+validate_project_artifacts() {
     local story_key=$1
-    local story_file="${STORIES_DIR}/${story_key}.md"
+    local story_file=$(ls "${STORIES_DIR}/${story_key}"*.md 2>/dev/null | head -1)
     
-    echo -e "${BLUE}Validating Godot artifacts...${NC}"
+    echo -e "${BLUE}Validating project artifacts...${NC}"
     
-    # Check for common patterns in story file
-    if grep -q "\.gd\|\.tscn\|\.tres" "$story_file" 2>/dev/null; then
-        echo -e "${GREEN}✓ Story references Godot files${NC}"
-    else
-        echo -e "${YELLOW}⚠ No Godot file references found in story${NC}"
+    if [ -z "$story_file" ]; then
+        echo -e "${YELLOW}⚠ No story file found to validate artifacts${NC}"
+        return 0
     fi
     
-    # Check for broken scene references in project
-    local broken_scenes=$(find . -name "*.tscn" -exec grep -l "ext_resource.*path=\"res://.*\" id=" {} \; 2>/dev/null | wc -l)
-    if [ "$broken_scenes" -gt 0 ]; then
-        echo -e "${YELLOW}⚠ Found ${broken_scenes} scenes with external resources (verify references)${NC}"
-    fi
+    echo -e "${GREEN}✓ Story file found${NC}"
 }
 
 # Function to draw progress bar
@@ -258,6 +252,69 @@ show_progress() {
     printf "                                                    \r"
 }
 
+# Session usage log
+USAGE_LOG="/tmp/bmad-usage-session-$(date +%Y-%m-%d).log"
+
+# Function to parse and display token/request usage from AI output
+show_usage_stats() {
+    local output_file=$1
+    local tokens_line=$(grep -i "Tokens\|tokens" "$output_file" 2>/dev/null | grep -i "↑\|input\|cached" | tail -1)
+    local requests_line=$(grep -i "Requests\|requests\|Premium" "$output_file" 2>/dev/null | tail -1)
+    
+    if [ -n "$tokens_line" ] || [ -n "$requests_line" ]; then
+        echo ""
+        echo -e "${BLUE}┌─ Usage ───────────────────────────────────────────────┐${NC}"
+        [ -n "$tokens_line" ] && echo -e "${BLUE}│${NC} ${tokens_line}"
+        [ -n "$requests_line" ] && echo -e "${BLUE}│${NC} ${requests_line}"
+        echo -e "${BLUE}└───────────────────────────────────────────────────────┘${NC}"
+        
+        # Log usage to session file for cumulative tracking
+        echo "$(date +%H:%M:%S) | ${COMMAND:-unknown} ${STORY_KEY:-} | ${tokens_line} ${requests_line}" >> "$USAGE_LOG"
+    fi
+}
+
+# Function to show cumulative session usage
+show_session_usage() {
+    echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BOLD}${CYAN}║              Session Usage Summary                        ║${NC}"
+    echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════╝${NC}\n"
+    
+    if [ ! -f "$USAGE_LOG" ]; then
+        echo -e "${YELLOW}No usage data yet today. Run a command to start tracking.${NC}"
+        return
+    fi
+    
+    local call_count=$(wc -l < "$USAGE_LOG" | tr -d ' ')
+    echo -e "${CYAN}Today's AI calls:${NC} ${call_count}"
+    echo ""
+    echo -e "${CYAN}Call History:${NC}"
+    echo -e "${BLUE}─────────────────────────────────────────────────────────────${NC}"
+    
+    while IFS= read -r line; do
+        echo -e "  ${line}"
+    done < "$USAGE_LOG"
+    
+    echo -e "${BLUE}─────────────────────────────────────────────────────────────${NC}"
+    echo ""
+    echo -e "${YELLOW}💡 Tips to reduce token usage:${NC}"
+    echo -e "  • Use --model sonnet for simple tasks (create-story)"
+    echo -e "  • Save opus/codex for complex implementation"
+    echo -e "  • Run 'code-review' with a different model than 'dev-story'"
+    echo ""
+}
+
+# Function to highlight important messages the AI flagged for the user
+show_important_messages() {
+    local output_file=$1
+    if grep -qi "MANUAL:\|test.*yourself\|you should.*test\|STOP\|cannot.*complete\|unable to\|requires.*user\|please check\|please test\|please verify" "$output_file" 2>/dev/null; then
+        echo ""
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        echo -e "${YELLOW}📋 IMPORTANT: Items that need your attention:${NC}"
+        grep -i "MANUAL:\|test.*yourself\|you should.*test\|STOP\|cannot.*complete\|unable to\|requires.*user\|please check\|please test\|please verify" "$output_file" 2>/dev/null | head -5
+        echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    fi
+}
+
 # Function to run AI with a prompt
 run_ai() {
     local prompt=$1
@@ -305,14 +362,11 @@ run_ai() {
         # Display output and clean up
         cat "$output_file"
         
+        # Show token usage summary
+        show_usage_stats "$output_file"
+        
         # Highlight important messages the AI flagged for the user
-        if grep -qi "manual\|test.*yourself\|you should\|you need to\|STOP\|WARNING\|cannot\|unable\|requires.*user\|human\|please check\|please test\|please verify\|attention" "$output_file" 2>/dev/null; then
-            echo ""
-            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            echo -e "${YELLOW}📋 IMPORTANT: AI flagged items that may need your attention:${NC}"
-            grep -i "manual\|test.*yourself\|you should\|you need to\|STOP\|WARNING\|cannot\|unable\|requires.*user\|human\|please check\|please test\|please verify\|attention" "$output_file" 2>/dev/null | head -5
-            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        fi
+        show_important_messages "$output_file"
         
         rm -f "$output_file"
         return $exit_code
@@ -328,17 +382,26 @@ run_ai() {
         wait $ai_pid
         local exit_code=$?
         
+        # Check for rate limit errors
+        if grep -qi "rate limit\|quota exceeded\|too many requests\|limit reached" "$output_file" 2>/dev/null; then
+            echo ""
+            echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${RED}⚠️  COPILOT RATE LIMIT REACHED${NC}"
+            echo -e "${GREEN}✨ Switch to Claude CLI (separate rate limits!):${NC}"
+            echo -e "  ${BOLD}./bmad.sh ${COMMAND} ${STORY_KEY} --cli claude --model sonnet${NC}"
+            echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            rm -f "$output_file"
+            return 1
+        fi
+        
         # Display output and clean up
         cat "$output_file"
         
+        # Show token usage summary
+        show_usage_stats "$output_file"
+        
         # Highlight important messages the AI flagged for the user
-        if grep -qi "manual\|test.*yourself\|you should\|you need to\|STOP\|WARNING\|cannot\|unable\|requires.*user\|human\|please check\|please test\|please verify\|attention" "$output_file" 2>/dev/null; then
-            echo ""
-            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-            echo -e "${YELLOW}📋 IMPORTANT: AI flagged items that may need your attention:${NC}"
-            grep -i "manual\|test.*yourself\|you should\|you need to\|STOP\|WARNING\|cannot\|unable\|requires.*user\|human\|please check\|please test\|please verify\|attention" "$output_file" 2>/dev/null | head -5
-            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        fi
+        show_important_messages "$output_file"
         
         rm -f "$output_file"
         return $exit_code
@@ -402,7 +465,7 @@ done
 
 if [ -z "$COMMAND" ]; then
     echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║      BMAD Game Dev Studio - Workflow Automation       ║${NC}"
+    echo -e "${BOLD}${CYAN}║            BMAD Flow - Workflow Automation            ║${NC}"
     echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${BOLD}INDIVIDUAL STORY COMMANDS:${NC}"
@@ -416,6 +479,7 @@ if [ -z "$COMMAND" ]; then
     echo ""
     echo -e "${BOLD}UTILITY COMMANDS:${NC}"
     echo -e "  ${BLUE}status${NC} [epic-num]          Show epic progress and story status"
+    echo -e "  ${BLUE}usage${NC}                      Show today's AI token/request usage"
     echo -e "  ${BLUE}retro${NC} <epic-num>           Generate epic retrospective"
     echo -e "  ${BLUE}preflight${NC} <story-key>      Validate story is ready for next phase"
     echo -e "  ${BLUE}help${NC}                       Show this help message"
@@ -469,17 +533,21 @@ if [ -z "$COMMAND" ]; then
     echo -e "  ./bmad.sh code-review 2-7 --cli copilot --model gpt-5.3-codex"
     echo -e "  ./bmad.sh epic 2"
     echo ""
-    echo -e "For detailed documentation: ${CYAN}cat BMAD-WORKFLOWS.md${NC}"
+    echo -e "For detailed documentation: ${CYAN}cat docs/BMAD-WORKFLOWS.md${NC}"
     echo ""
     exit 1
 fi
 
 case $COMMAND in
     help)
-        # Show help (reuse the help display from above)
         COMMAND=""
         STORY_KEY=""
         exec "$0"
+        ;;
+    
+    usage)
+        show_session_usage
+        exit 0
         ;;
         
     status)
@@ -521,10 +589,10 @@ case $COMMAND in
         echo -e "   Current status: ${CYAN}${story_status}${NC}"
         echo -e "${GREEN}✓ Status check complete${NC}\n"
         
-        # Validate Godot artifacts if story is in dev/review
+        # Validate project artifacts if story is in dev/review
         if [[ "$story_status" == "in-progress" || "$story_status" == "review" ]]; then
-            echo -e "${BLUE}4. Validating Godot artifacts...${NC}"
-            validate_godot_artifacts "$STORY_KEY"
+            echo -e "${BLUE}4. Validating project artifacts...${NC}"
+            validate_project_artifacts "$STORY_KEY"
             echo ""
         fi
         
@@ -545,21 +613,9 @@ case $COMMAND in
         
         echo -e "${GREEN}=== Generating Epic ${EPIC_NUM} Retrospective ===${NC}"
         
-        PROMPT="Generate a retrospective for Epic ${EPIC_NUM} following BMAD-METHOD.
+        PROMPT="Generate a retrospective for Epic ${EPIC_NUM}. Read story files in ${STORIES_DIR}/ and sprint-status.yaml.
 
-1. Read all story files for epic ${EPIC_NUM} in ${STORIES_DIR}/
-2. Read sprint-status.yaml to see all story statuses
-3. Create retrospective document: ${STORIES_DIR}/epic-${EPIC_NUM}-retro-$(date +%Y-%m-%d).md
-
-Include:
-- What went well
-- What could be improved
-- Technical lessons learned
-- Blockers encountered and how they were resolved
-- Recommendations for next epic
-- Metrics: stories completed, time estimates vs actual
-
-Use bmad-help to ensure proper retrospective format."
+Create ${STORIES_DIR}/epic-${EPIC_NUM}-retro-$(date +%Y-%m-%d).md with: what went well, improvements, lessons learned, blockers and resolutions, metrics (stories done, estimates vs actual), recommendations for next epic."
 
         run_ai "$PROMPT" "$CLI" "$MODEL"
         update_status "epic-${EPIC_NUM}-retrospective" "done"
@@ -665,7 +721,7 @@ Use bmad-help to ensure proper retrospective format."
         fi
         
         if [[ "$story_status" == "in-progress" || "$story_status" == "review" ]]; then
-            echo -e "${YELLOW}⏸  TEST YOUR GAME NOW!${NC}"
+            echo -e "${YELLOW}⏸  TEST YOUR APP NOW!${NC}"
             echo -e "${YELLOW}   Press Enter when ready for code review...${NC}"
             read
             
@@ -699,15 +755,9 @@ Use bmad-help to ensure proper retrospective format."
             check_git_clean
         fi
         
-        PROMPT="Read the epic file in ${STORIES_DIR}/ and create a new story file ${STORIES_DIR}/${STORY_KEY}.md for story ${STORY_KEY}.
+        PROMPT="Read the epic file in ${STORIES_DIR}/ and create story file ${STORIES_DIR}/${STORY_KEY}.md.
 
-The file must include:
-1. Story title and context
-2. Specific, testable acceptance criteria  
-3. Technical implementation approach
-4. Dependencies and prerequisites
-
-Follow BMAD-METHOD story structure. Write the file now and confirm when done."
+Include: title, context, testable acceptance criteria, technical approach, and dependencies. Follow BMAD-METHOD story structure. Write the file now."
 
         run_ai "$PROMPT" "$CLI" "$MODEL"
         update_status "$STORY_KEY" "ready-for-dev"
@@ -735,31 +785,20 @@ Follow BMAD-METHOD story structure. Write the file now and confirm when done."
             validate_story_file "$STORY_KEY" || exit 1
         fi
         
-        PROMPT="Follow the BMAD-METHOD to implement story ${STORY_KEY}.
+        PROMPT="Implement story ${STORY_KEY}. Read ${STORIES_DIR}/${STORY_KEY}*.md for requirements.
 
-IMPORTANT: First invoke the bmad-help skill to validate workflow state and ensure story is ready for development.
+Implement all acceptance criteria. Follow the technical approach in the story file. Test your work.
 
-1. Read the story file ${STORIES_DIR}/${STORY_KEY}.md
-2. Implement all requirements in the Godot project
-3. Follow the technical approach specified in the story
-4. Update the story file with implementation notes
-5. Test that the implementation works
+If you encounter blockers or cannot complete something, say 'MANUAL: <what needs attention>'.
 
-VALIDATION:
-- Verify implementation matches story requirements
-- Check for integration issues with existing systems
-- Ensure code quality meets project standards
-
-If there are blockers, missing requirements, or the story isn't ready, STOP and explain what's needed.
-
-When complete, summarize what was implemented and any issues encountered."
+Summarize what was implemented when done."
 
         run_ai "$PROMPT" "$CLI" "$MODEL"
         update_status "$STORY_KEY" "review"
         git_commit "$STORY_KEY" "dev-story"
         
         echo -e "${GREEN}✓ Story implemented and committed${NC}"
-        echo -e "${YELLOW}Next: TEST YOUR GAME, then run: ./bmad.sh code-review ${STORY_KEY}${NC}"
+        echo -e "${YELLOW}Next: TEST YOUR APP, then run: ./bmad.sh code-review ${STORY_KEY}${NC}"
         ;;
         
     code-review)
@@ -778,25 +817,16 @@ When complete, summarize what was implemented and any issues encountered."
         if [[ ! "$*" =~ "--skip-validation" ]]; then
             check_git_clean
             validate_story_file "$STORY_KEY" || exit 1
-            validate_godot_artifacts "$STORY_KEY"
+            validate_project_artifacts "$STORY_KEY"
         fi
         
-        PROMPT="Review and fix the code for story ${STORY_KEY}. 
+        PROMPT="Code review for story ${STORY_KEY}. Read ${STORIES_DIR}/${STORY_KEY}*.md and review all uncommitted changes.
 
-Read the story at ${STORIES_DIR}/${STORY_KEY}*.md and review all uncommitted changes in the repository.
+Find and fix: bugs, edge cases, performance issues, missing error handling, and best-practice violations.
 
-Your task:
-1. Identify bugs, edge cases, performance issues, and violations of Godot best practices
-2. Fix any critical issues you find
-3. Add missing error handling and validation
-4. Improve code quality where needed
-5. Update the story file with review findings
+If something requires manual testing, say 'MANUAL: <what to test>'.
 
-Focus on: type safety, null checks, resource management, signal handling, and Godot-specific patterns.
-
-Fix all issues you find and summarize what was reviewed and fixed.
-
-Provide a summary of the review and any fixes made."
+Summarize findings and fixes."
 
         run_ai "$PROMPT" "$CLI" "$MODEL"
         update_status "$STORY_KEY" "done"
@@ -808,8 +838,8 @@ Provide a summary of the review and any fixes made."
         ;;
         
     *)
-        echo "Unknown command: $COMMAND"
-        echo "Valid commands: create-story, dev-story, code-review"
+        echo -e "${RED}Unknown command: $COMMAND${NC}"
+        echo -e "Run ${BOLD}./bmad.sh help${NC} for valid commands"
         exit 1
         ;;
 esac

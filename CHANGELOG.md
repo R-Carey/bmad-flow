@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-05-14
+
+### Added
+- **Token usage tracking**: Shows token stats after each AI call (parsed from CLI output)
+- **Session usage command**: `./bmad.sh usage` shows cumulative daily usage history
+- **Usage tips**: Provides efficiency guidance after showing session stats
+- **Copilot rate limit detection**: Mirrors Claude rate limit handling with switch suggestions
+
+### Optimized
+- **Prompts reduced 60-70%**: All prompts rewritten for token efficiency
+  - `create-story`: 65 tokens → 28 tokens
+  - `dev-story`: 130 tokens → 42 tokens (removed bmad-help skill invocation that caused 30+ min hangs)
+  - `code-review`: 115 tokens → 38 tokens
+  - `retro`: 120 tokens → 45 tokens
+- **Important message detection**: Tighter regex, reduced false positives
+- **validate_godot_artifacts**: Fixed file glob bug, removed expensive `find` command
+
+### Fixed
+- `validate_godot_artifacts` now uses glob to find story files (matches `validate_story_file`)
+- `show_important_messages` now triggers on `MANUAL:` keyword (matches prompt instructions)
+- Unknown command error now points to `help` command
+
 ## [1.3.0] - 2026-05-14
 
 ### BREAKING: Philosophy Change - Model-Centric Configuration
