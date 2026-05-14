@@ -241,7 +241,18 @@ show_progress() {
         # Warning after 20 minutes
         if [ $elapsed -eq 1200 ]; then
             printf "\n"
-            echo -e "${YELLOW}⚠️  20 minutes elapsed - AI might be stuck. You can Ctrl+C to interrupt.${NC}"
+            echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${YELLOW}⚠️  WARNING: 20 minutes elapsed - AI might be stuck${NC}"
+            echo -e "${CYAN}What to do:${NC}"
+            echo -e "  1. Press ${BOLD}Ctrl+C${NC} to interrupt"
+            echo -e "  2. Run: ${BOLD}git status${NC} to see what was done"
+            echo -e "  3. Check if files were modified/created"
+            echo -e "  4. If work looks complete:"
+            echo -e "     • Continue manually: ${BOLD}./bmad.sh <next-phase> <story-key>${NC}"
+            echo -e "  5. If work incomplete:"
+            echo -e "     • Retry: ${BOLD}./bmad.sh <same-command> <story-key>${NC}"
+            echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            printf "\n"
         fi
     done
     printf "                                                    \r"
