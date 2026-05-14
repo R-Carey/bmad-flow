@@ -3,7 +3,7 @@
 # ============================================================================
 # BMAD Flow - Workflow Automation Script
 # ============================================================================
-# Automates the BMAD-METHOD development cycle for any project.
+# Automates the BMAD-METHOD development cycle for any project
 # Supports: create-story, dev-story, code-review, epic processing, retrospectives
 # Documentation: See docs/BMAD-WORKFLOWS.md for detailed usage
 # ============================================================================
@@ -465,7 +465,7 @@ done
 
 if [ -z "$COMMAND" ]; then
     echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║            BMAD Flow - Workflow Automation            ║${NC}"
+    echo -e "${BOLD}${CYAN}║      BMAD Flow - Workflow Automation       ║${NC}"
     echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${BOLD}INDIVIDUAL STORY COMMANDS:${NC}"
@@ -663,7 +663,7 @@ case $COMMAND in
         echo -e "   Current status: ${CYAN}${story_status}${NC}"
         echo -e "${GREEN}✓ Status check complete${NC}\n"
         
-        # Validate Godot artifacts if story is in dev/review
+        # Validate project artifacts if story is in dev/review
         if [[ "$story_status" == "in-progress" || "$story_status" == "review" ]]; then
             echo -e "${BLUE}4. Validating project artifacts...${NC}"
             validate_project_artifacts "$STORY_KEY"
@@ -738,7 +738,10 @@ Create ${STORIES_DIR}/epic-${EPIC_NUM}-retro-$(date +%Y-%m-%d).md with: what wen
             echo -e "${BOLD}${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
             
             # Run cycle for this story
-            $0 cycle "$story" ${USE_CLI:+--cli $USE_CLI} ${USE_MODEL:+--model $USE_MODEL}
+            local -a epic_args=()
+            [[ -n "$USE_CLI" ]] && epic_args+=(--cli "$USE_CLI")
+            [[ -n "$USE_MODEL" ]] && epic_args+=(--model "$USE_MODEL")
+            $0 cycle "$story" "${epic_args[@]}"
             
             echo -e "\n${GREEN}✓ Story ${story} complete (${current}/${total})${NC}\n"
         done
@@ -768,12 +771,17 @@ Create ${STORIES_DIR}/epic-${EPIC_NUM}-retro-$(date +%Y-%m-%d).md with: what wen
         # Do git check once at the start
         check_git_clean
         
+        # Build extra args array (zsh requires array for proper word splitting)
+        local -a extra_args=(--skip-validation)
+        [[ -n "$USE_CLI" ]] && extra_args+=(--cli "$USE_CLI")
+        [[ -n "$USE_MODEL" ]] && extra_args+=(--model "$USE_MODEL")
+        
         local story_status=$(get_status "$STORY_KEY")
         
         # Determine starting phase based on status
         if [[ "$story_status" == "backlog" ]]; then
             echo -e "${CYAN}Phase 1/3: Creating Story${NC}\n"
-            if ! $0 create-story "$STORY_KEY" --skip-validation ${USE_CLI:+--cli $USE_CLI} ${USE_MODEL:+--model $USE_MODEL}; then
+            if ! $0 create-story "$STORY_KEY" "${extra_args[@]}"; then
                 echo -e "${RED}✗ create-story failed${NC}"
                 exit 1
             fi
@@ -786,7 +794,7 @@ Create ${STORIES_DIR}/epic-${EPIC_NUM}-retro-$(date +%Y-%m-%d).md with: what wen
             read
             
             echo -e "${CYAN}Phase 2/3: Implementing Story${NC}\n"
-            if ! $0 dev-story "$STORY_KEY" --skip-validation ${USE_CLI:+--cli $USE_CLI} ${USE_MODEL:+--model $USE_MODEL}; then
+            if ! $0 dev-story "$STORY_KEY" "${extra_args[@]}"; then
                 echo -e "${RED}✗ dev-story failed${NC}"
                 exit 1
             fi
@@ -800,7 +808,7 @@ Create ${STORIES_DIR}/epic-${EPIC_NUM}-retro-$(date +%Y-%m-%d).md with: what wen
             read
             
             echo -e "${CYAN}Phase 3/3: Code Review${NC}\n"
-            if ! $0 code-review "$STORY_KEY" --skip-validation ${USE_CLI:+--cli $USE_CLI} ${USE_MODEL:+--model $USE_MODEL}; then
+            if ! $0 code-review "$STORY_KEY" "${extra_args[@]}"; then
                 echo -e "${RED}✗ code-review failed${NC}"
                 exit 1
             fi
