@@ -5,12 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.2.0] - 2026-05-13
+## [1.2.0] - 2026-05-14
 
 ### Added
 - Rate limit detection with clear error messages
 - Alternative model suggestions when rate limits hit
 - Shows reset time from API response
+- "SWITCHING MODELS" section in help with concrete examples
+- Shows exact command to run with Copilot when Claude hits limits
+
+### Improved
+- Rate limit message now shows EXACT command ready to copy/paste
+- Clear "EASY FIX" messaging in green
+- Explains separate rate limits between providers
+- Help command shows how to switch models proactively
 
 ### Changed
 - **MAJOR**: Simplified create-story prompt for 10x speed improvement
