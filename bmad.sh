@@ -304,6 +304,16 @@ run_ai() {
         
         # Display output and clean up
         cat "$output_file"
+        
+        # Highlight important messages the AI flagged for the user
+        if grep -qi "manual\|test.*yourself\|you should\|you need to\|STOP\|WARNING\|cannot\|unable\|requires.*user\|human\|please check\|please test\|please verify\|attention" "$output_file" 2>/dev/null; then
+            echo ""
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${YELLOW}📋 IMPORTANT: AI flagged items that may need your attention:${NC}"
+            grep -i "manual\|test.*yourself\|you should\|you need to\|STOP\|WARNING\|cannot\|unable\|requires.*user\|human\|please check\|please test\|please verify\|attention" "$output_file" 2>/dev/null | head -5
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        fi
+        
         rm -f "$output_file"
         return $exit_code
         
@@ -320,6 +330,16 @@ run_ai() {
         
         # Display output and clean up
         cat "$output_file"
+        
+        # Highlight important messages the AI flagged for the user
+        if grep -qi "manual\|test.*yourself\|you should\|you need to\|STOP\|WARNING\|cannot\|unable\|requires.*user\|human\|please check\|please test\|please verify\|attention" "$output_file" 2>/dev/null; then
+            echo ""
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${YELLOW}📋 IMPORTANT: AI flagged items that may need your attention:${NC}"
+            grep -i "manual\|test.*yourself\|you should\|you need to\|STOP\|WARNING\|cannot\|unable\|requires.*user\|human\|please check\|please test\|please verify\|attention" "$output_file" 2>/dev/null | head -5
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+        fi
+        
         rm -f "$output_file"
         return $exit_code
     else
