@@ -68,13 +68,23 @@ export BMAD_REVIEW_MODEL="gpt-5.3-codex"         # or: claude-sonnet-4-6
 # ─────────────────────────────────────────────────────────────────────────
 # MODEL REFERENCE
 # ─────────────────────────────────────────────────────────────────────────
-# CLAUDE MODELS (via --cli claude):
-#   sonnet, claude-sonnet-4-6      - Fast, efficient, great for most tasks
-#   opus, claude-opus-4-7-high     - Most capable, best for complex code
-#   haiku                          - Fastest, simple tasks only
+# CLAUDE CLI (--cli claude):
+#   Supports: Claude models only
+#   - sonnet, claude-sonnet-4-6      - Fast, efficient, great for most tasks
+#   - opus, claude-opus-4-7-high     - Most capable, best for complex code  
+#   - haiku                          - Fastest, simple tasks only
 #
-# GPT MODELS (via --cli copilot):
-#   gpt-5.3-codex                  - Excellent for code analysis & review
-#   gpt-5.5-medium                 - Strong general coding capability
-#   gpt-4                          - Solid fallback option
+# COPILOT CLI (--cli copilot):
+#   Supports: BOTH GPT and Claude models!
+#   GPT models:
+#     - gpt-5.4 (default)            - Latest GPT, balanced performance
+#     - gpt-5.3-codex                - Excellent for code analysis & review
+#     - gpt-5.5-medium               - Strong general coding capability
+#     - gpt-4                        - Solid fallback option
+#   Claude models:
+#     - claude-sonnet-4.6            - Fast, efficient (with effort levels!)
+#     - claude-sonnet-4.5            - Previous generation, still strong
+#     - claude-haiku-4.5             - Fastest Claude option
+#
+# 💡 TIP: Copilot CLI supports effort levels for Claude models (low/medium/high)
 # ─────────────────────────────────────────────────────────────────────────

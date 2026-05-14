@@ -265,43 +265,6 @@ run_ai() {
     local model=$3
     local output_file="/tmp/bmad-ai-output-$$.txt"
     
-    # Validate model/CLI compatibility
-    if [ "$cli" = "copilot" ] && [[ "$model" =~ ^claude ]]; then
-        echo ""
-        echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo -e "${RED}⚠️  INCOMPATIBLE MODEL/CLI COMBINATION${NC}"
-        echo -e "${YELLOW}You specified: --cli copilot --model ${model}${NC}"
-        echo -e "${YELLOW}Problem: Copilot CLI only supports GPT models, not Claude models${NC}"
-        echo ""
-        echo -e "${CYAN}Choose one:${NC}"
-        echo -e "  ${BOLD}1. Use Copilot with GPT model:${NC}"
-        echo -e "     ./bmad.sh ${COMMAND} ${STORY_KEY} --cli copilot --model gpt-5.3-codex"
-        echo ""
-        echo -e "  ${BOLD}2. Use Claude CLI with Claude model:${NC}"
-        echo -e "     ./bmad.sh ${COMMAND} ${STORY_KEY} --cli claude --model ${model}"
-        echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo ""
-        return 1
-    fi
-    
-    if [ "$cli" = "claude" ] && [[ "$model" =~ ^gpt ]]; then
-        echo ""
-        echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo -e "${RED}⚠️  INCOMPATIBLE MODEL/CLI COMBINATION${NC}"
-        echo -e "${YELLOW}You specified: --cli claude --model ${model}${NC}"
-        echo -e "${YELLOW}Problem: Claude CLI only supports Claude models, not GPT models${NC}"
-        echo ""
-        echo -e "${CYAN}Choose one:${NC}"
-        echo -e "  ${BOLD}1. Use Claude CLI with Claude model:${NC}"
-        echo -e "     ./bmad.sh ${COMMAND} ${STORY_KEY} --cli claude --model claude-sonnet-4-6"
-        echo ""
-        echo -e "  ${BOLD}2. Use Copilot with GPT model:${NC}"
-        echo -e "     ./bmad.sh ${COMMAND} ${STORY_KEY} --cli copilot --model ${model}"
-        echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
-        echo ""
-        return 1
-    fi
-    
     echo -e "${CYAN}Using: ${cli} with model ${model}${NC}"
     echo -e "${YELLOW}⏳ This may take 1-15 minutes depending on complexity...${NC}"
     
@@ -324,15 +287,16 @@ run_ai() {
             echo -e "${YELLOW}Claude has hit its rate limit.${NC}"
             grep "resets\|limit" "$output_file" 2>/dev/null | head -1
             echo ""
-            echo -e "${GREEN}✨ EASY FIX: Switch to Copilot (GPT) instead!${NC}"
-            echo -e "${CYAN}Run this command right now:${NC}"
+            echo -e "${GREEN}✨ EASY FIX: Switch to Copilot CLI (separate rate limits!)${NC}"
+            echo -e "${CYAN}Copilot supports both GPT and Claude models:${NC}"
             echo ""
             echo -e "  ${BOLD}${MAGENTA}./bmad.sh ${COMMAND} ${STORY_KEY} --cli copilot --model gpt-5.3-codex${NC}"
+            echo -e "  ${BOLD}${MAGENTA}./bmad.sh ${COMMAND} ${STORY_KEY} --cli copilot --model claude-sonnet-4.6${NC}"
             echo ""
-            echo -e "${CYAN}Or wait for Claude rate limit to reset (time shown above) and retry:${NC}"
+            echo -e "${CYAN}Or wait for Claude CLI rate limit to reset (time shown above):${NC}"
             echo -e "  ${BOLD}./bmad.sh ${COMMAND} ${STORY_KEY}${NC}"
             echo ""
-            echo -e "${YELLOW}💡 Tip: Copilot uses OpenAI's GPT models and has separate rate limits${NC}"
+            echo -e "${YELLOW}💡 Tip: Copilot CLI has separate rate limits from Claude CLI!${NC}"
             echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             rm -f "$output_file"
             return 1
