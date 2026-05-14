@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-05-13
+
+### Added
+- Rate limit detection with clear error messages
+- Alternative model suggestions when rate limits hit
+- Shows reset time from API response
+
+### Changed
+- **MAJOR**: Simplified create-story prompt for 10x speed improvement
+  - Removed bmad-help skill invocation (was causing 30+ min delays)
+  - Now completes in 1-3 minutes instead of 30+
+  - Direct, actionable language without numbered lists
+- Capture AI output to temp file for error detection
+
+### Fixed
+- create-story taking 30+ minutes due to complex prompts
+- Rate limit errors not being detected or explained
+
 ## [1.1.1] - 2026-05-13
 
 ### Added

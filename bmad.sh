@@ -263,37 +263,70 @@ run_ai() {
     local prompt=$1
     local cli=$2
     local model=$3
+    local output_file="/tmp/bmad-ai-output-$$.txt"
     
     echo -e "${CYAN}Using: ${cli} with model ${model}${NC}"
     echo -e "${YELLOW}⏳ This may take 1-15 minutes depending on complexity...${NC}"
     
     if [ "$cli" = "claude" ]; then
         if [ -n "$model" ]; then
-            echo "$prompt" | $CLAUDE_BIN --print --dangerously-skip-permissions --model "$model" &
+            echo "$prompt" | $CLAUDE_BIN --print --dangerously-skip-permissions --model "$model" > "$output_file" 2>&1 &
         else
-            echo "$prompt" | $CLAUDE_BIN --print --dangerously-skip-permissions &
+            echo "$prompt" | $CLAUDE_BIN --print --dangerously-skip-permissions > "$output_file" 2>&1 &
         fi
         local ai_pid=$!
         show_progress $ai_pid
         wait $ai_pid
-        return $?
+        local exit_code=$?
+        
+        # Check for rate limit errors
+        if grep -q "hit your limit\|rate limit\|too many requests" "$output_file" 2>/dev/null; then
+            echo ""
+            echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${RED}⚠️  API RATE LIMIT REACHED${NC}"
+            echo -e "${YELLOW}The Claude API has hit its rate limit.${NC}"
+            grep "resets\|limit" "$output_file" 2>/dev/null | head -1
+            echo -e "\n${CYAN}What to do:${NC}"
+            echo -e "  • Wait for the rate limit to reset (time shown above)"
+            echo -e "  • Try again with: ${BOLD}./bmad.sh ${COMMAND} ${STORY_KEY}${NC}"
+            echo -e "  • Or switch to a different model: ${BOLD}--cli copilot --model gpt-5.3-codex${NC}"
+            echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            rm -f "$output_file"
+            return 1
+        fi
+        
+        # Display output and clean up
+        cat "$output_file"
+        rm -f "$output_file"
+        return $exit_code
+        
     elif [ "$cli" = "copilot" ]; then
         if [ -n "$model" ]; then
-            echo "$prompt" | $COPILOT_BIN --prompt - --model "$model" &
+            echo "$prompt" | $COPILOT_BIN --prompt - --model "$model" > "$output_file" 2>&1 &
         else
-            echo "$prompt" | $COPILOT_BIN --prompt - &
+            echo "$prompt" | $COPILOT_BIN --prompt - > "$output_file" 2>&1 &
         fi
         local ai_pid=$!
         show_progress $ai_pid
         wait $ai_pid
-        return $?
+        local exit_code=$?
+        
+        # Display output and clean up
+        cat "$output_file"
+        rm -f "$output_file"
+        return $exit_code
     else
         echo -e "${YELLOW}Unknown CLI: $cli, falling back to claude${NC}"
-        echo "$prompt" | $CLAUDE_BIN --print &
+        echo "$prompt" | $CLAUDE_BIN --print > "$output_file" 2>&1 &
         local ai_pid=$!
         show_progress $ai_pid
         wait $ai_pid
-        return $?
+        local exit_code=$?
+        
+        # Display output and clean up
+        cat "$output_file"
+        rm -f "$output_file"
+        return $exit_code
     fi
 }
 
@@ -622,23 +655,17 @@ Use bmad-help to ensure proper retrospective format."
             check_git_clean
         fi
         
-        PROMPT="Follow the BMAD-METHOD to create a story definition for ${STORY_KEY}.
+        PROMPT="Create a story definition file for ${STORY_KEY} following the BMAD-METHOD.
 
-IMPORTANT: First invoke the bmad-help skill to validate workflow state and ensure this is the correct next step.
+Read the epic file in ${STORIES_DIR}/ to understand requirements, then create ${STORY_KEY}.md with:
+- Story context and overview
+- Acceptance criteria (specific, testable)
+- Technical approach and implementation notes
+- Dependencies and prerequisites
 
-1. Read the epic file in ${STORIES_DIR}/ to understand the story requirements
-2. Create the story file ${STORY_KEY}.md in ${STORIES_DIR}/
-3. Follow the BMAD story template structure
-4. Include all necessary sections: Context, Requirements, Technical Approach, etc.
+Use the BMAD story template structure. Keep it focused and actionable.
 
-VALIDATION:
-- Verify the story file follows BMAD standards
-- Check that all required sections are present
-- Ensure technical approach is sound
-
-If there are any issues or the workflow state is incorrect, STOP and explain what needs attention.
-
-When complete, summarize what was created."
+Summarize what was created when done."
 
         run_ai "$PROMPT" "$CLI" "$MODEL"
         update_status "$STORY_KEY" "ready-for-dev"
