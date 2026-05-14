@@ -687,27 +687,20 @@ When complete, summarize what was implemented and any issues encountered."
             validate_godot_artifacts "$STORY_KEY"
         fi
         
-        PROMPT="Perform a code review for story ${STORY_KEY}.
+        PROMPT="Review and fix the code for story ${STORY_KEY}. 
 
-IMPORTANT: First invoke the bmad-help skill to validate that the story is in the correct state for review.
+Read the story at ${STORIES_DIR}/${STORY_KEY}*.md and review all uncommitted changes in the repository.
 
-1. Read the story file ${STORIES_DIR}/${STORY_KEY}.md
-2. Review all code changes for this story
-3. Check for:
-   - Code quality and Godot best practices
-   - Performance issues
-   - Edge cases and error handling
-   - Documentation and comments
-   - Consistency with existing codebase
-4. Update the story file with review findings
-5. Fix any critical issues found
+Your task:
+1. Identify bugs, edge cases, performance issues, and violations of Godot best practices
+2. Fix any critical issues you find
+3. Add missing error handling and validation
+4. Improve code quality where needed
+5. Update the story file with review findings
 
-VALIDATION:
-- Verify all story requirements were implemented
-- Check that implementation is complete and tested
-- Ensure no regressions were introduced
+Focus on: type safety, null checks, resource management, signal handling, and Godot-specific patterns.
 
-If critical issues are found that require user attention, STOP and list them clearly.
+Fix all issues you find and summarize what was reviewed and fixed.
 
 Provide a summary of the review and any fixes made."
 
