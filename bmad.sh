@@ -122,7 +122,11 @@ validate_project_artifacts() {
         return 0
     fi
     
-    echo -e "${GREEN}✓ Story file found${NC}"
+    if grep -q "\.gd\|\.tscn\|\.tres" "$story_file" 2>/dev/null; then
+        echo -e "${GREEN}✓ Story file found${NC}"
+    else
+        echo -e "${YELLOW}⚠ No specific file references found in story${NC}"
+    fi
 }
 
 # Function to draw progress bar
@@ -382,6 +386,21 @@ run_ai() {
         wait $ai_pid
         local exit_code=$?
         
+        # Check for model not available error
+        if grep -qi "not available\|not found\|invalid model\|unknown model" "$output_file" 2>/dev/null; then
+            echo ""
+            echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${RED}⚠️  COPILOT MODEL ERROR${NC}"
+            cat "$output_file"
+            echo ""
+            echo -e "${CYAN}Valid Copilot models include:${NC}"
+            echo -e "  claude-sonnet-4.6, gpt-5.3-codex, gpt-5.5-medium, gpt-5.4"
+            echo -e "${YELLOW}Note: Effort levels (low/medium/high) are set via /model in interactive mode${NC}"
+            echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            rm -f "$output_file"
+            return 1
+        fi
+        
         # Check for rate limit errors
         if grep -qi "rate limit\|quota exceeded\|too many requests\|limit reached" "$output_file" 2>/dev/null; then
             echo ""
@@ -392,6 +411,14 @@ run_ai() {
             echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             rm -f "$output_file"
             return 1
+        fi
+        
+        # Show output on failure even if no specific error matched
+        if [ $exit_code -ne 0 ]; then
+            echo -e "${RED}Copilot returned an error:${NC}"
+            cat "$output_file"
+            rm -f "$output_file"
+            return $exit_code
         fi
         
         # Display output and clean up
