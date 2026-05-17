@@ -160,6 +160,30 @@ After Epic Completion:
 
 ---
 
+## ⚙️ Config Vars Reference
+
+Key variables in `bmad-config.sh`:
+
+| Variable | Purpose | Example |
+|----------|---------|---------|
+| `BMAD_STATUS_FILE` | Path to sprint-status YAML | `_bmad-output/implementation-artifacts/sprint-status.yaml` |
+| `BMAD_STORIES_DIR` | Directory containing story files | `_bmad-output/implementation-artifacts` |
+| `BMAD_TECH_STACK` | Technology label | `"Godot"`, `"React"`, `"Django"` |
+| `BMAD_FILE_EXTENSIONS` | Extensions to validate | `".gd .tscn .tres"` |
+| `BMAD_DEV_CLI` | CLI for dev-story | `"claude"` |
+| `BMAD_DEV_MODEL` | Model for dev-story | `"claude-sonnet-4-6"` |
+| `BMAD_REVIEW_CLI` | CLI for code-review | `"copilot"` |
+| `BMAD_REVIEW_MODEL` | Model for code-review | `"gpt-5.3-codex"` |
+| `BMAD_APP_NOUN` | Noun in test-pause messages | `"game"`, `"app"`, `"service"` |
+| `BMAD_GIT_COAUTHOR` | Co-authored-by trailer in auto-commits | `"Bot <bot@example.com>"` |
+| `BMAD_TEST_CMD` | Command AI runs to execute tests | `"./run_tests.sh"`, `"npm test"`, `"pytest"` |
+| `BMAD_TEST_FILE_PATTERN` | `grep -oE` pattern for test files in story docs | `"scenes/[a-z_]+_test\.tscn"` |
+| `BMAD_TEST_RUN_INSTRUCTIONS` | Human-readable how-to-run shown at test pause | `"Press F6 in Godot..."` |
+| `BMAD_TEST_PASS_INDICATOR` | What passing output looks like | `"All tests passed"` |
+| `BMAD_TEST_FAIL_INDICATOR` | What failure output looks like | `"FAILED"` |
+
+---
+
 ## 🔧 Model Strategy
 
 ```

@@ -99,6 +99,8 @@ These run a single phase of the BMAD workflow.
 
 **⚠️ CRITICAL**: Test your game after this phase!
 
+**AI-fail pause**: If the AI exits with a non-zero status, `bmad.sh` displays a prominent warning banner and prompts `y/n` before proceeding to code review — giving you the chance to investigate and fix issues rather than silently advancing.
+
 ---
 
 #### `code-review <story-key>`

@@ -208,7 +208,17 @@ export BMAD_STATUS_FILE="_bmad-output/implementation-artifacts/sprint-status.yam
 export BMAD_STORIES_DIR="_bmad-output/implementation-artifacts"
 export BMAD_TECH_STACK="Godot"
 export BMAD_FILE_EXTENSIONS=".gd .tscn .tres"
+
+export BMAD_APP_NOUN="game"
+export BMAD_GIT_COAUTHOR=""           # e.g. "Bot <bot@example.com>"
+export BMAD_TEST_CMD="./run_tests.sh"
+export BMAD_TEST_FILE_PATTERN="scenes/[a-z_]+_test\.tscn"
+export BMAD_TEST_RUN_INSTRUCTIONS="Press F6 in Godot with the test scene open, or run ./run_tests.sh"
+export BMAD_TEST_PASS_INDICATOR="All tests passed"
+export BMAD_TEST_FAIL_INDICATOR="FAILED"
 ```
+
+> **`run_tests.sh`**: `install.sh` auto-generates this script for Godot projects. It locates the Godot binary (checking `$PATH` then `/Applications/Godot.app`) so the AI can run tests headlessly during `dev-story` without requiring Godot on the system `PATH`.
 
 ### Example 2: Unity Game
 

@@ -149,7 +149,20 @@ export BMAD_DEV_CLI="claude"
 export BMAD_DEV_MODEL="claude-sonnet-4-6"
 export BMAD_REVIEW_CLI="copilot"  # or "claude"
 export BMAD_REVIEW_MODEL="gpt-5.3-codex"
+
+# General
+export BMAD_APP_NOUN="app"            # Noun used in test-pause messages: "game", "app", "service"
+export BMAD_GIT_COAUTHOR=""           # If set, added as Co-authored-by trailer in auto-commits
+
+# Test runner integration (used by dev-story to give the AI test hints)
+export BMAD_TEST_CMD=""               # Command the AI runs to execute tests, e.g. "./run_tests.sh"
+export BMAD_TEST_FILE_PATTERN=""      # grep -oE pattern to extract test file paths from story docs
+export BMAD_TEST_RUN_INSTRUCTIONS=""  # Human-readable instructions shown at the test pause
+export BMAD_TEST_PASS_INDICATOR=""    # What passing output looks like, e.g. "All tests passed"
+export BMAD_TEST_FAIL_INDICATOR=""    # What failure output looks like, e.g. "FAILED"
 ```
+
+> **`--skip-validation` flag**: Pass `--skip-validation` to any command to bypass the git-clean pre-flight check. This flag is fully functional (previously was silently ignored).
 
 See [examples/](examples/) for configurations for specific technologies.
 
