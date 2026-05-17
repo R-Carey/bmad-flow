@@ -154,19 +154,89 @@ if [ "$PROJECT_TYPE" != "Unknown" ]; then
     # Auto-configure bmad-config.sh
     echo -e "${BLUE}Configuring for $PROJECT_TYPE...${NC}\n"
     
-    # Update BMAD_TECH_STACK
+    # Update legacy fields if present in template
     sed -i.bak "s/export BMAD_TECH_STACK=\"Your Technology\"/export BMAD_TECH_STACK=\"$PROJECT_TYPE\"/" bmad-config.sh
-    
-    # Update FILE_EXTENSIONS
     sed -i.bak "s/export BMAD_FILE_EXTENSIONS=\".example .ext\"/export BMAD_FILE_EXTENSIONS=\"$FILE_EXTENSIONS\"/" bmad-config.sh
-    
-    rm bmad-config.sh.bak
-    
+    rm -f bmad-config.sh.bak
+
+    # Set project-type-specific config vars
+    case "$PROJECT_TYPE" in
+        "Godot")
+            sed -i.bak 's/export BMAD_APP_NOUN="app"/export BMAD_APP_NOUN="game"/' bmad-config.sh
+            sed -i.bak 's|export BMAD_TEST_CMD=""|export BMAD_TEST_CMD="./run_tests.sh"|' bmad-config.sh
+            sed -i.bak 's|export BMAD_TEST_FILE_PATTERN=""|export BMAD_TEST_FILE_PATTERN='"'"'scenes/[^ "]+_test\\.tscn'"'"'|' bmad-config.sh
+            sed -i.bak 's|export BMAD_TEST_RUN_INSTRUCTIONS=""|export BMAD_TEST_RUN_INSTRUCTIONS="Godot editor → FileSystem panel → double-click scene → Clear Output → F6"|' bmad-config.sh
+            sed -i.bak 's|export BMAD_TEST_PASS_INDICATOR=""|export BMAD_TEST_PASS_INDICATOR="Output ends with: Results: X passed, 0 failed"|' bmad-config.sh
+            sed -i.bak 's|export BMAD_TEST_FAIL_INDICATOR=""|export BMAD_TEST_FAIL_INDICATOR="Any FAIL — line in Output → fix before continuing"|' bmad-config.sh
+            rm -f bmad-config.sh.bak
+
+            # Generate run_tests.sh for headless Godot testing
+            cat > run_tests.sh << 'RUNTESTS'
+#!/bin/zsh
+# Run a Godot test scene headlessly.
+# Usage: ./run_tests.sh scenes/systems/my_test.tscn
+#
+# Resolves Godot binary automatically — no need for `godot` on PATH.
+
+set -euo pipefail
+
+SCENE="${1:-}"
+if [ -z "$SCENE" ]; then
+    echo "Usage: ./run_tests.sh <path/to/test.tscn>"
+    exit 1
+fi
+
+G="$(command -v godot4 2>/dev/null || command -v godot 2>/dev/null || echo /Applications/Godot.app/Contents/MacOS/Godot)"
+
+if [ ! -x "$G" ]; then
+    echo "MANUAL: Godot binary not found at '$G'."
+    echo "        Run the test manually: open ${SCENE} in the Godot editor → F6"
+    exit 1
+fi
+
+echo "▶  $G --headless $SCENE"
+"$G" --headless "$SCENE"
+RUNTESTS
+            chmod +x run_tests.sh
+            echo -e "${GREEN}✓ run_tests.sh generated (headless Godot test runner)${NC}"
+            ;;
+
+        "React"|"Expo React Native"|"React Native"|"Vue"|"Node.js")
+            sed -i.bak 's|export BMAD_TEST_CMD=""|export BMAD_TEST_CMD="npm test"|' bmad-config.sh
+            sed -i.bak "s|export BMAD_TEST_FILE_PATTERN=\"\"|export BMAD_TEST_FILE_PATTERN='tests\?/[^ \"]+\\.(test\|spec)\\.(js\|ts)'|" bmad-config.sh
+            sed -i.bak 's|export BMAD_TEST_PASS_INDICATOR=""|export BMAD_TEST_PASS_INDICATOR="All tests passed (0 failures)"|' bmad-config.sh
+            sed -i.bak 's|export BMAD_TEST_FAIL_INDICATOR=""|export BMAD_TEST_FAIL_INDICATOR="FAIL or Error lines in output → fix before continuing"|' bmad-config.sh
+            rm -f bmad-config.sh.bak
+            ;;
+
+        "Django")
+            sed -i.bak 's|export BMAD_TEST_CMD=""|export BMAD_TEST_CMD="python manage.py test"|' bmad-config.sh
+            sed -i.bak 's|export BMAD_TEST_PASS_INDICATOR=""|export BMAD_TEST_PASS_INDICATOR="OK (X tests)"|' bmad-config.sh
+            sed -i.bak 's|export BMAD_TEST_FAIL_INDICATOR=""|export BMAD_TEST_FAIL_INDICATOR="FAILED (failures=X) → fix before continuing"|' bmad-config.sh
+            rm -f bmad-config.sh.bak
+            ;;
+
+        "Rails")
+            sed -i.bak 's|export BMAD_TEST_CMD=""|export BMAD_TEST_CMD="bundle exec rspec"|' bmad-config.sh
+            sed -i.bak 's|export BMAD_TEST_PASS_INDICATOR=""|export BMAD_TEST_PASS_INDICATOR="X examples, 0 failures"|' bmad-config.sh
+            sed -i.bak 's|export BMAD_TEST_FAIL_INDICATOR=""|export BMAD_TEST_FAIL_INDICATOR="X failure(s) → fix before continuing"|' bmad-config.sh
+            rm -f bmad-config.sh.bak
+            ;;
+
+        "Flutter")
+            sed -i.bak 's|export BMAD_TEST_CMD=""|export BMAD_TEST_CMD="flutter test"|' bmad-config.sh
+            sed -i.bak 's|export BMAD_TEST_PASS_INDICATOR=""|export BMAD_TEST_PASS_INDICATOR="All tests passed!"|' bmad-config.sh
+            sed -i.bak 's|export BMAD_TEST_FAIL_INDICATOR=""|export BMAD_TEST_FAIL_INDICATOR="Some tests failed → fix before continuing"|' bmad-config.sh
+            rm -f bmad-config.sh.bak
+            ;;
+    esac
+
     echo -e "${GREEN}✓ Configuration updated${NC}\n"
 else
     echo -e "${YELLOW}⚠ Could not auto-detect project type${NC}"
     echo -e "${YELLOW}  Please edit bmad-config.sh manually${NC}\n"
 fi
+
 
 # Test installation
 echo -e "${BLUE}Testing installation...${NC}\n"

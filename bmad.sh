@@ -559,6 +559,8 @@ shift 2 2>/dev/null || true
 USE_CLI=""
 USE_MODEL=""
 
+SKIP_VALIDATION=false
+
 while [[ $# -gt 0 ]]; do
     case $1 in
         --cli)
@@ -568,6 +570,10 @@ while [[ $# -gt 0 ]]; do
         --model)
             USE_MODEL="$2"
             shift 2
+            ;;
+        --skip-validation)
+            SKIP_VALIDATION=true
+            shift
             ;;
         *)
             shift
@@ -948,7 +954,7 @@ Create ${STORIES_DIR}/epic-${EPIC_NUM}-retro-$(date +%Y-%m-%d).md with: what wen
         echo -e "${GREEN}=== Creating Story: ${STORY_KEY} ===${NC}"
         
         # Pre-flight check (unless skipped)
-        if [[ ! "$*" =~ "--skip-validation" ]]; then
+        if [[ "$SKIP_VALIDATION" != "true" ]]; then
             check_git_clean
         fi
         
@@ -977,7 +983,7 @@ Include: title, context, testable acceptance criteria, technical approach, and d
         echo -e "${GREEN}=== Implementing Story: ${STORY_KEY} ===${NC}"
         
         # Pre-flight check (unless skipped)
-        if [[ ! "$*" =~ "--skip-validation" ]]; then
+        if [[ "$SKIP_VALIDATION" != "true" ]]; then
             check_git_clean
             validate_story_file "$STORY_KEY" || exit 1
         fi
@@ -1036,7 +1042,7 @@ Summarize what was implemented when done."
         echo -e "${GREEN}=== Code Review: ${STORY_KEY} ===${NC}"
         
         # Pre-flight check (unless skipped)
-        if [[ ! "$*" =~ "--skip-validation" ]]; then
+        if [[ "$SKIP_VALIDATION" != "true" ]]; then
             check_git_clean
             validate_story_file "$STORY_KEY" || exit 1
             validate_project_artifacts "$STORY_KEY"
