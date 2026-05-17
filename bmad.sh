@@ -805,11 +805,11 @@ case $COMMAND in
         
         echo -e "${GREEN}=== Generating Epic ${EPIC_NUM} Retrospective ===${NC}"
         
-        PROMPT="Generate a retrospective for Epic ${EPIC_NUM}. Read story files in ${STORIES_DIR}/ and sprint-status.yaml.
+        _AI_PROMPT="Generate a retrospective for Epic ${EPIC_NUM}. Read story files in ${STORIES_DIR}/ and sprint-status.yaml.
 
 Create ${STORIES_DIR}/epic-${EPIC_NUM}-retro-$(date +%Y-%m-%d).md with: what went well, improvements, lessons learned, blockers and resolutions, metrics (stories done, estimates vs actual), recommendations for next epic."
 
-        run_ai "$PROMPT" "$CLI" "$MODEL"
+        run_ai "$_AI_PROMPT" "$CLI" "$MODEL"
         update_status "epic-${EPIC_NUM}-retrospective" "done"
         git_commit "epic-${EPIC_NUM}" "retrospective"
         
@@ -958,11 +958,11 @@ Create ${STORIES_DIR}/epic-${EPIC_NUM}-retro-$(date +%Y-%m-%d).md with: what wen
             check_git_clean
         fi
         
-        PROMPT="Read the epic file in ${STORIES_DIR}/ and create story file ${STORIES_DIR}/${STORY_KEY}.md.
+        _AI_PROMPT="Read the epic file in ${STORIES_DIR}/ and create story file ${STORIES_DIR}/${STORY_KEY}.md.
 
 Include: title, context, testable acceptance criteria, technical approach, and dependencies. Follow BMAD-METHOD story structure. Write the file now."
 
-        run_ai "$PROMPT" "$CLI" "$MODEL"
+        run_ai "$_AI_PROMPT" "$CLI" "$MODEL"
         update_status "$STORY_KEY" "ready-for-dev"
         git_commit "$STORY_KEY" "create-story"
         
@@ -992,7 +992,7 @@ Include: title, context, testable acceptance criteria, technical approach, and d
         [ -n "${BMAD_TEST_CMD:-}" ] && \
             _test_hint=$'\n'"To run automated tests: ${BMAD_TEST_CMD} <test-file> (if binary unavailable it will print MANUAL instructions)"
 
-        PROMPT="Implement story ${STORY_KEY}. Read ${STORIES_DIR}/${STORY_KEY}*.md for requirements.
+        _AI_PROMPT="Implement story ${STORY_KEY}. Read ${STORIES_DIR}/${STORY_KEY}*.md for requirements.
 
 Implement all acceptance criteria. Follow the technical approach in the story file.${_test_hint}
 
@@ -1001,7 +1001,7 @@ If you encounter blockers or cannot complete something, say 'MANUAL: <what needs
 Summarize what was implemented when done."
 
         _AI_EXIT=0
-        run_ai "$PROMPT" "$CLI" "$MODEL" || _AI_EXIT=$?
+        run_ai "$_AI_PROMPT" "$CLI" "$MODEL" || _AI_EXIT=$?
 
         if [ $_AI_EXIT -ne 0 ]; then
             echo ""
@@ -1057,7 +1057,7 @@ Summarize what was implemented when done."
                 awk '{print NR". "$0}')
         fi
 
-        PROMPT="Code review for story ${STORY_KEY}.
+        _AI_PROMPT="Code review for story ${STORY_KEY}.
 
 STEP 1 — READ THE STORY: Read ${STORIES_DIR}/${STORY_KEY}*.md for the full requirements and acceptance criteria.
 
@@ -1076,7 +1076,25 @@ If something requires manual testing by the developer, say 'MANUAL: <what to tes
 
 Summarize: AC results (pass/fail), bugs fixed, and anything left for manual verification."
 
-        run_ai "$PROMPT" "$CLI" "$MODEL"
+        _AI_EXIT=0
+        run_ai "$_AI_PROMPT" "$CLI" "$MODEL" || _AI_EXIT=$?
+
+        if [ $_AI_EXIT -ne 0 ]; then
+            echo ""
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${YELLOW}⚠️  AI reported issues — scroll up and review the output above${NC}"
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            if [[ -t 0 ]]; then
+                read -q "REPLY?Mark story as done and commit anyway? (y/n) "
+                echo
+                if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                    echo -e "${RED}Aborted — fix the issues above and re-run code-review${NC}"
+                    exit 1
+                fi
+            else
+                echo -e "${YELLOW}Non-interactive mode: continuing despite AI issues${NC}"
+            fi
+        fi
         update_status "$STORY_KEY" "done"
         git_commit "$STORY_KEY" "code-review"
         
