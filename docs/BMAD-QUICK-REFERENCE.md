@@ -13,8 +13,11 @@ cd /path/to/project/
 chmod +x bmad.sh
 nano bmad-config.sh  # Edit for your project
 
-# 3. Test
-./bmad.sh status 1
+# 3. Verify setup
+./bmad.sh config
+
+# 4. Start
+./bmad.sh next
 ```
 
 **Full Guide**: `cat BMAD-INSTALLATION.md`
@@ -136,6 +139,8 @@ After Epic Completion:
 
 | Command | Args | Purpose | Time |
 |---------|------|---------|------|
+| `next` | - | Show exactly what to do next | 1s |
+| `config` | - | Show all settings + binary status | 1s |
 | `status` | epic# | Show progress | 1s |
 | `create-story` | story-key | Create story file | 2-5 min |
 | `dev-story` | story-key | Implement story | 5-15 min |
@@ -144,6 +149,8 @@ After Epic Completion:
 | `epic` | epic# | All stories in epic | Hours |
 | `retro` | epic# | Generate retrospective | 5 min |
 | `preflight` | story-key | Validate readiness | 5s |
+| `usage` | - | Show today's AI usage | 1s |
+| `version` | - | Show bmad-flow version | 1s |
 | `help` | - | Show help | 1s |
 
 ---
@@ -205,7 +212,10 @@ code-review    copilot        gpt-5.3-codex      Fresh eyes, strict
 
 ### Daily Development
 ```bash
-# Morning: Check what's left
+# Morning: See exactly what to do next
+./bmad.sh next
+
+# Or check full progress
 ./bmad.sh status 2
 
 # Work on next story
@@ -319,6 +329,7 @@ Generate retrospective:
 
 | Problem | Quick Fix |
 |---------|-----------|
+| Not sure what's configured | `./bmad.sh config` |
 | Git dirty | `git commit -am "WIP"` or `git stash` |
 | Story file missing | `./bmad.sh create-story 2-7` |
 | AI stopped | Re-run command or try different model |
@@ -331,7 +342,13 @@ Generate retrospective:
 
 ```bash
 # Quick status check
+./bmad.sh next
+
+# Or full status
 ./bmad.sh status 2
+
+# Verify config and binary status
+./bmad.sh config
 
 # Process one story, full automation
 ./bmad.sh cycle 2-7
@@ -355,6 +372,12 @@ Generate retrospective:
 
 ```
 Need to...
+│
+├─ See what to do next?
+│  └─ ./bmad.sh next
+│
+├─ Check/debug config?
+│  └─ ./bmad.sh config
 │
 ├─ Check progress?
 │  └─ ./bmad.sh status <epic#>

@@ -71,21 +71,28 @@ nano bmad-config.sh  # Edit paths and technology
 ./bmad.sh help
 ```
 
-**Expected**: Colorful help menu with all commands
+**Expected**: Colorful help menu with all commands and version number
 
-### 2. Check Status
+### 2. Verify Your Configuration
+```bash
+./bmad.sh config
+```
+
+**Expected**: All settings shown — app noun, tech stack, AI models, ✓/✗ binary status, test config. Fix anything that shows ✗.
+
+### 3. Check Status
 ```bash
 ./bmad.sh status 1  # Replace '1' with your epic number
 ```
 
 **Expected**: Progress bar, story list, status icons
 
-### 3. Validate a Story
+### 4. See What's Next
 ```bash
-./bmad.sh preflight 1-1  # Replace with actual story
+./bmad.sh next
 ```
 
-**Expected**: Pre-flight checks pass
+**Expected**: Exact command to run for your next story
 
 ---
 
@@ -150,11 +157,11 @@ Step 3: Code Review
 
 ### Morning Routine
 ```bash
-# Check where you are
-./bmad.sh status 2
+# See exactly what to do next (recommended!)
+./bmad.sh next
 
-# See what's left:
-# Progress: [████████░░░░░░░░] 50% (5/10)
+# Or check full epic progress
+./bmad.sh status 2
 ```
 
 ### Work on Next Story
@@ -185,16 +192,22 @@ Step 3: Code Review
 ## Common Commands
 
 ```bash
+# Verify setup / debug issues
+./bmad.sh config
+
+# See exactly what to do next
+./bmad.sh next
+
 # Check progress
 ./bmad.sh status <epic>
 
-# Single story (manual)
+# Single story (automated, recommended)
+./bmad.sh cycle <story>
+
+# Single story (manual control)
 ./bmad.sh create-story <story>
 ./bmad.sh dev-story <story>
 ./bmad.sh code-review <story>
-
-# Single story (automated)
-./bmad.sh cycle <story>
 
 # Entire epic
 ./bmad.sh epic <epic>
@@ -204,6 +217,12 @@ Step 3: Code Review
 
 # Validate before starting
 ./bmad.sh preflight <story>
+
+# Check AI usage today
+./bmad.sh usage
+
+# Show bmad-flow version
+./bmad.sh version
 
 # Show help
 ./bmad.sh help
@@ -238,6 +257,12 @@ export BMAD_REVIEW_CLI="claude"
 ---
 
 ## Troubleshooting
+
+### "Which binary or model is configured?"
+```bash
+# Show all active settings and binary ✓/✗ status at a glance
+./bmad.sh config
+```
 
 ### "Git dirty" warning
 ```bash

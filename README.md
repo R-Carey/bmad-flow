@@ -16,11 +16,14 @@ Drop-in automation system for any BMAD project - works with Godot, Unity, React,
 curl -O https://raw.githubusercontent.com/R-Carey/bmad-flow/main/install.sh
 chmod +x install.sh
 
-# 2. Install
+# 2. Install (auto-detects your project type)
 ./install.sh
 
-# 3. Use it!
-./bmad.sh status 1
+# 3. Verify setup
+./bmad.sh config
+
+# 4. Use it!
+./bmad.sh next
 ./bmad.sh cycle 1-1
 ```
 
@@ -35,9 +38,11 @@ Automates the tedious parts of BMAD development:
 - ✅ **Visual Progress Tracking** - See epic status with progress bars
 - ✅ **Automated Workflows** - Run full story cycles with one command
 - ✅ **Multi-Model Strategy** - Claude for dev, GPT for review (catches more bugs!)
-- ✅ **Smart Validation** - Pre-flight checks before executing
+- ✅ **Smart Validation** - Pre-flight checks and artifact verification before executing
+- ✅ **Active Config Display** - `./bmad.sh config` shows all settings + binary status at a glance
 - ✅ **Auto-Commits** - Git commits after each phase
 - ✅ **Batch Processing** - Process entire epics at once
+- ✅ **Rate Limit Recovery** - Detects limits and suggests switching CLI automatically
 
 **Result**: ~60% time savings on workflow overhead + higher code quality
 
@@ -82,8 +87,13 @@ Stories by Status:
 
 ### Utilities
 ```bash
+./bmad.sh next                 # Show exactly what to do next (recommended!)
+./bmad.sh config               # Show all active settings + binary status
+./bmad.sh status 2             # Visual progress with progress bars
+./bmad.sh usage                # Show today's AI token/request usage
 ./bmad.sh retro 2              # Generate retrospective
 ./bmad.sh preflight 2-7        # Validate before starting
+./bmad.sh version              # Show bmad-flow version
 ./bmad.sh help                 # Show all commands
 ```
 
@@ -104,6 +114,9 @@ Stories by Status:
 curl -O https://raw.githubusercontent.com/R-Carey/bmad-flow/main/install.sh
 chmod +x install.sh
 ./install.sh
+
+# Verify setup immediately after:
+./bmad.sh config
 ```
 
 ### Method 2: Manual Install
@@ -203,9 +216,9 @@ See [examples/](examples/) for configurations for specific technologies.
 | Document | Purpose | Read When |
 |----------|---------|-----------|
 | [README.md](README.md) | This file | Starting out |
-| [QUICK-REFERENCE.md](docs/QUICK-REFERENCE.md) | Command cheat sheet | Daily use |
-| [INSTALLATION.md](docs/INSTALLATION.md) | Complete setup guide | Setting up |
-| [WORKFLOWS.md](docs/WORKFLOWS.md) | Detailed guide | Learning deeply |
+| [BMAD-QUICK-REFERENCE.md](docs/BMAD-QUICK-REFERENCE.md) | Command cheat sheet | Daily use |
+| [BMAD-INSTALLATION.md](docs/BMAD-INSTALLATION.md) | Complete setup guide | Setting up |
+| [BMAD-WORKFLOWS.md](docs/BMAD-WORKFLOWS.md) | Detailed guide | Learning deeply |
 | [examples/](examples/) | Tech-specific configs | Your technology |
 
 ---
@@ -215,7 +228,10 @@ See [examples/](examples/) for configurations for specific technologies.
 ### Daily Development Workflow
 
 ```bash
-# Morning: Check progress
+# Morning: Check what to do next
+./bmad.sh next
+
+# Or see full epic progress
 ./bmad.sh status 2
 
 # Work on next story
@@ -354,13 +370,17 @@ export BMAD_REVIEW_MODEL="gpt-5.3-codex"
 | Command | Args | Description |
 |---------|------|-------------|
 | `status` | epic# | Show progress and story breakdown |
+| `next` | - | Show exactly what to do next |
+| `config` | - | Show all active settings and binary status |
 | `create-story` | story-key | Create story file from epic |
 | `dev-story` | story-key | Implement the story |
 | `code-review` | story-key | Review and fix code |
 | `cycle` | story-key | Full workflow with pauses |
 | `epic` | epic# | Process all stories in epic |
+| `usage` | - | Show today's AI token/request usage |
 | `retro` | epic# | Generate retrospective |
 | `preflight` | story-key | Validate readiness |
+| `version` | - | Show bmad-flow version |
 | `help` | - | Show help menu |
 
 ### Options
@@ -494,16 +514,6 @@ MIT License - see [LICENSE](LICENSE) for details.
 - [Examples](examples/)
 - [Contributing](CONTRIBUTING.md)
 - [Changelog](CHANGELOG.md)
-
----
-
-## 📈 Project Stats
-
-- **Lines of Code**: ~24KB (main script)
-- **Documentation**: 6 comprehensive guides
-- **Supported Technologies**: 10+ templates
-- **Time Savings**: ~60% on workflow overhead
-- **Quality Improvement**: Multi-model review catches more bugs
 
 ---
 
