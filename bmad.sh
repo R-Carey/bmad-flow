@@ -454,8 +454,9 @@ run_ai() {
         wait $ai_pid
         local exit_code=$?
         
-        # Check for model not available error
-        if grep -qi "not available\|not found\|invalid model\|unknown model" "$output_file" 2>/dev/null; then
+        # Check for model not available error — only fire when exit_code is non-zero
+        # to avoid false positives from AI output containing phrases like "No matches found"
+        if [ $exit_code -ne 0 ] && grep -qi "model.*not available\|model.*not found\|invalid model\|unknown model\|no such model" "$output_file" 2>/dev/null; then
             echo ""
             echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
             echo -e "${RED}⚠️  COPILOT MODEL ERROR${NC}"
@@ -523,12 +524,14 @@ git_commit() {
     echo -e "${BLUE}Committing changes for ${story_key} (${phase})...${NC}"
     
     git add .
-    git commit -m "$(cat <<EOF
+    if ! git commit -m "$(cat <<EOF
 ${story_key}: ${phase}
 
 Automated commit via bmad.sh
 EOF
-)"
+)"; then
+        echo -e "${YELLOW}ℹ Nothing new to commit (AI may have committed directly)${NC}"
+    fi
     
     echo -e "${GREEN}✓ Committed${NC}"
 }
@@ -971,9 +974,13 @@ If you encounter blockers or cannot complete something, say 'MANUAL: <what needs
 
 Summarize what was implemented when done."
 
-        run_ai "$PROMPT" "$CLI" "$MODEL"
+        _AI_EXIT=0
+        run_ai "$PROMPT" "$CLI" "$MODEL" || _AI_EXIT=$?
         update_status "$STORY_KEY" "review"
         git_commit "$STORY_KEY" "dev-story"
+        if [ $_AI_EXIT -ne 0 ]; then
+            echo -e "${YELLOW}⚠ AI reported issues — review output above before continuing${NC}"
+        fi
         
         echo -e "${GREEN}✓ Story implemented and committed${NC}"
         echo -e "${YELLOW}Next: TEST YOUR APP, then run: ./bmad.sh code-review ${STORY_KEY}${NC}"
