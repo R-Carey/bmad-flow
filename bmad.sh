@@ -337,10 +337,13 @@ show_story_test_hints() {
     local test_scenes
     test_scenes=$(grep -oE 'scenes/[^ "]+_test\.tscn' "$story_file" 2>/dev/null | sort -u)
     if [ -n "$test_scenes" ]; then
-        echo -e "${CYAN}🎮 Automated Test Scenes to Run (Godot):${NC}"
+        echo -e "${CYAN}🎮 Automated Test Scenes to Run:${NC}"
+        echo -e "${BLUE}   How to run:${NC} Godot editor → FileSystem panel → double-click the scene below"
+        echo -e "${BLUE}               Clear the Output tab → press F6 → read results"
+        echo -e "${BLUE}   ✅ Pass:${NC}    Output ends with ${BOLD}Results: X passed, 0 failed${NC}"
+        echo -e "${BLUE}   ❌ Fail:${NC}    Any ${BOLD}FAIL —${NC} line appears → copy it and fix before continuing\n"
         echo "$test_scenes" | while IFS= read -r scene; do
-            echo -e "  ${GREEN}▶${NC} Godot → FileSystem → ${BOLD}${scene}${NC}"
-            echo -e "     Clear Output → F6 → watch for PASS / Results summary"
+            echo -e "  ${GREEN}▶${NC}  ${BOLD}${scene}${NC}"
         done
         echo ""
     fi
@@ -350,6 +353,7 @@ show_story_test_hints() {
     ac_headers=$(grep -E '^### AC[0-9]' "$story_file" 2>/dev/null)
     if [ -n "$ac_headers" ]; then
         echo -e "${CYAN}✅ Acceptance Criteria to Verify:${NC}"
+        echo -e "${BLUE}   The code review AI will check these — you should spot-check them too.${NC}\n"
         echo "$ac_headers" | while IFS= read -r ac; do
             echo -e "  ${YELLOW}□${NC}  ${ac}"
         done
@@ -361,7 +365,7 @@ show_story_test_hints() {
     assertions=$(awk '/Assertions|AC5.*[Tt]est|automated test/,/^---/' "$story_file" 2>/dev/null \
         | grep -E '^\s*[0-9]+\.' | head -15)
     if [ -n "$assertions" ]; then
-        echo -e "${CYAN}🧪 Specific Assertions to Confirm:${NC}"
+        echo -e "${CYAN}🧪 Specific Assertions (from story — the test scene runs these automatically):${NC}"
         echo "$assertions" | while IFS= read -r line; do
             echo -e "  ${YELLOW}□${NC}  ${line}"
         done
@@ -379,7 +383,7 @@ show_story_test_hints() {
         echo ""
     fi
 
-    echo -e "${YELLOW}Complete the checks above before continuing to code review.${NC}"
+    echo -e "${YELLOW}Complete the checks above before continuing — the code review will verify ACs are implemented.${NC}"
     echo -e "${BOLD}${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 }
 
@@ -994,13 +998,33 @@ Summarize what was implemented when done."
             validate_project_artifacts "$STORY_KEY"
         fi
         
-        PROMPT="Code review for story ${STORY_KEY}. Read ${STORIES_DIR}/${STORY_KEY}*.md and review all uncommitted changes.
+        # Build AC list from story file to inject into the review prompt
+        local story_file_cr
+        story_file_cr=$(ls "${STORIES_DIR}/${STORY_KEY}"*.md 2>/dev/null | head -1)
+        local ac_list=""
+        if [ -n "$story_file_cr" ]; then
+            ac_list=$(grep -E '^### AC[0-9]' "$story_file_cr" 2>/dev/null | sed 's/^### //' | \
+                awk '{print NR". "$0}')
+        fi
 
-Find and fix: bugs, edge cases, performance issues, missing error handling, and best-practice violations.
+        PROMPT="Code review for story ${STORY_KEY}.
 
-If something requires manual testing, say 'MANUAL: <what to test>'.
+STEP 1 — READ THE STORY: Read ${STORIES_DIR}/${STORY_KEY}*.md for the full requirements and acceptance criteria.
 
-Summarize findings and fixes."
+STEP 2 — VERIFY EACH ACCEPTANCE CRITERION is fully implemented:
+${ac_list:-  (see story file for ACs)}
+
+For each AC: state whether it PASSES or FAILS, and fix any that fail.
+
+STEP 3 — GENERAL CODE REVIEW of all changes for this story:
+- Bugs, edge cases, off-by-one errors
+- Missing or incorrect error handling
+- Best-practice violations for the project tech stack
+- Anything the automated tests do not cover
+
+If something requires manual testing by the developer, say 'MANUAL: <what to test>'.
+
+Summarize: AC results (pass/fail), bugs fixed, and anything left for manual verification."
 
         run_ai "$PROMPT" "$CLI" "$MODEL"
         update_status "$STORY_KEY" "done"
