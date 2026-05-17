@@ -14,8 +14,34 @@ export BMAD_STATUS_FILE="_bmad-output/implementation-artifacts/sprint-status.yam
 export BMAD_STORIES_DIR="_bmad-output/implementation-artifacts"
 
 # ─────────────────────────────────────────────────────────────────────────
-# CLI BINARIES (adjust paths for your system)
+# PROJECT TYPE & TEST CONFIGURATION
 # ─────────────────────────────────────────────────────────────────────────
+# What to call your project in messages ("game", "app", "service", etc.)
+export BMAD_APP_NOUN="app"
+
+# Optional: Git co-author trailer added to automated commits.
+# Example: "Your Name <yourname@users.noreply.github.com>"
+export BMAD_GIT_COAUTHOR=""
+
+# Pattern (grep -oE) to find automated test files mentioned in story docs.
+# Leave empty to skip automated-test detection in the test-pause checklist.
+#
+# Godot:    'scenes/[^ "]+_test\.tscn'
+# Jest:     'tests?/[^ "]+\.(test|spec)\.(js|ts)'
+# Pytest:   'tests?/test_[^ "]+\.py'
+# RSpec:    'spec/[^ "]+_spec\.rb'
+export BMAD_TEST_FILE_PATTERN=""
+
+# How to run the tests (shown to user at the test-pause step)
+export BMAD_TEST_RUN_INSTRUCTIONS=""
+
+# What a clean test run looks like
+export BMAD_TEST_PASS_INDICATOR=""
+
+# What failure looks like (prompts user to stop)
+export BMAD_TEST_FAIL_INDICATOR=""
+
+
 export BMAD_CLAUDE_BIN="claude"
 export BMAD_COPILOT_BIN="copilot"
 

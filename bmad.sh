@@ -28,6 +28,12 @@ fi
 : ${BMAD_REVIEW_CLI:="copilot"}
 : ${BMAD_REVIEW_MODEL:="gpt-5.3-codex"}
 : ${BMAD_STATUS_FILE:="_bmad-output/implementation-artifacts/sprint-status.yaml"}
+: ${BMAD_APP_NOUN:="app"}
+: ${BMAD_TEST_FILE_PATTERN:=""}
+: ${BMAD_TEST_RUN_INSTRUCTIONS:=""}
+: ${BMAD_TEST_PASS_INDICATOR:=""}
+: ${BMAD_TEST_FAIL_INDICATOR:=""}
+: ${BMAD_GIT_COAUTHOR:=""}
 : ${BMAD_STORIES_DIR:="_bmad-output/implementation-artifacts"}
 
 # Use config values
@@ -333,19 +339,25 @@ show_story_test_hints() {
         return
     fi
 
-    # Show automated test scenes (Godot pattern: *_test.tscn in scenes/)
-    local test_scenes
-    test_scenes=$(grep -oE 'scenes/[^ "]+_test\.tscn' "$story_file" 2>/dev/null | sort -u)
-    if [ -n "$test_scenes" ]; then
-        echo -e "${CYAN}🎮 Automated Test Scenes to Run:${NC}"
-        echo -e "${BLUE}   How to run:${NC} Godot editor → FileSystem panel → double-click the scene below"
-        echo -e "${BLUE}               Clear the Output tab → press F6 → read results"
-        echo -e "${BLUE}   ✅ Pass:${NC}    Output ends with ${BOLD}Results: X passed, 0 failed${NC}"
-        echo -e "${BLUE}   ❌ Fail:${NC}    Any ${BOLD}FAIL —${NC} line appears → copy it and fix before continuing\n"
-        echo "$test_scenes" | while IFS= read -r scene; do
-            echo -e "  ${GREEN}▶${NC}  ${BOLD}${scene}${NC}"
-        done
-        echo ""
+    local app_noun="${BMAD_APP_NOUN:-app}"
+
+    # Show automated test files if a pattern is configured in bmad-config.sh
+    if [ -n "${BMAD_TEST_FILE_PATTERN:-}" ]; then
+        local test_files
+        test_files=$(grep -oE "$BMAD_TEST_FILE_PATTERN" "$story_file" 2>/dev/null | sort -u)
+        if [ -n "$test_files" ]; then
+            echo -e "${CYAN}🧪 Automated Tests to Run:${NC}"
+            [ -n "${BMAD_TEST_RUN_INSTRUCTIONS:-}" ] && \
+                echo -e "${BLUE}   How to run:${NC} ${BMAD_TEST_RUN_INSTRUCTIONS}"
+            [ -n "${BMAD_TEST_PASS_INDICATOR:-}" ] && \
+                echo -e "${BLUE}   ✅ Pass:${NC}    ${BMAD_TEST_PASS_INDICATOR}"
+            [ -n "${BMAD_TEST_FAIL_INDICATOR:-}" ] && \
+                echo -e "${BLUE}   ❌ Fail:${NC}    ${BMAD_TEST_FAIL_INDICATOR}\n"
+            echo "$test_files" | while IFS= read -r f; do
+                echo -e "  ${GREEN}▶${NC}  ${BOLD}${f}${NC}"
+            done
+            echo ""
+        fi
     fi
 
     # Show Acceptance Criteria section headers as a checklist
@@ -353,7 +365,7 @@ show_story_test_hints() {
     ac_headers=$(grep -E '^### AC[0-9]' "$story_file" 2>/dev/null)
     if [ -n "$ac_headers" ]; then
         echo -e "${CYAN}✅ Acceptance Criteria to Verify:${NC}"
-        echo -e "${BLUE}   The code review AI will check these — you should spot-check them too.${NC}\n"
+        echo -e "${BLUE}   The code review AI will check these — spot-check them in your ${app_noun} too.${NC}\n"
         echo "$ac_headers" | while IFS= read -r ac; do
             echo -e "  ${YELLOW}□${NC}  ${ac}"
         done
@@ -365,7 +377,7 @@ show_story_test_hints() {
     assertions=$(awk '/Assertions|AC5.*[Tt]est|automated test/,/^---/' "$story_file" 2>/dev/null \
         | grep -E '^\s*[0-9]+\.' | head -15)
     if [ -n "$assertions" ]; then
-        echo -e "${CYAN}🧪 Specific Assertions (from story — the test scene runs these automatically):${NC}"
+        echo -e "${CYAN}🔬 Specific Assertions (the automated tests cover these):${NC}"
         echo "$assertions" | while IFS= read -r line; do
             echo -e "  ${YELLOW}□${NC}  ${line}"
         done
@@ -520,19 +532,20 @@ run_ai() {
 git_commit() {
     local story_key=$1
     local phase=$2
-    
-    echo -e "${BLUE}Committing changes for ${story_key} (${phase})...${NC}"
-    
-    git add .
-    if ! git commit -m "$(cat <<EOF
-${story_key}: ${phase}
 
-Automated commit via bmad.sh
-EOF
-)"; then
+    echo -e "${BLUE}Committing changes for ${story_key} (${phase})...${NC}"
+
+    git add .
+
+    local trailer=""
+    [ -n "${BMAD_GIT_COAUTHOR:-}" ] && trailer=$'\n\n'"Co-authored-by: ${BMAD_GIT_COAUTHOR}"
+
+    if ! git commit -m "${story_key}: ${phase}
+
+Automated commit via bmad.sh${trailer}"; then
         echo -e "${YELLOW}ℹ Nothing new to commit (AI may have committed directly)${NC}"
     fi
-    
+
     echo -e "${GREEN}✓ Committed${NC}"
 }
 
@@ -902,7 +915,9 @@ Create ${STORIES_DIR}/epic-${EPIC_NUM}-retro-$(date +%Y-%m-%d).md with: what wen
         
         if [[ "$story_status" == "in-progress" || "$story_status" == "review" ]]; then
             show_story_test_hints "$STORY_KEY"
-            echo -e "${YELLOW}⏸  TEST YOUR APP NOW — review the checklist above${NC}"
+            local _app_noun_up
+            _app_noun_up=$(echo "${BMAD_APP_NOUN:-app}" | tr '[:lower:]' '[:upper:]')
+            echo -e "${YELLOW}⏸  TEST YOUR ${_app_noun_up} NOW — review the checklist above${NC}"
             echo -e "${YELLOW}   Press Enter when you have tested and are ready for code review...${NC}"
             read
             
@@ -976,14 +991,31 @@ Summarize what was implemented when done."
 
         _AI_EXIT=0
         run_ai "$PROMPT" "$CLI" "$MODEL" || _AI_EXIT=$?
+
+        if [ $_AI_EXIT -ne 0 ]; then
+            echo ""
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            echo -e "${YELLOW}⚠️  AI reported issues — scroll up and review the output above${NC}"
+            echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+            if [[ -t 0 ]]; then
+                read -q "REPLY?Update status to 'review' and continue? (y/n) "
+                echo
+                if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+                    echo -e "${RED}Aborted — fix the issues above and re-run dev-story${NC}"
+                    exit 1
+                fi
+            else
+                echo -e "${YELLOW}Non-interactive mode: continuing despite AI issues${NC}"
+            fi
+        fi
+
         update_status "$STORY_KEY" "review"
         git_commit "$STORY_KEY" "dev-story"
-        if [ $_AI_EXIT -ne 0 ]; then
-            echo -e "${YELLOW}⚠ AI reported issues — review output above before continuing${NC}"
-        fi
-        
+
         echo -e "${GREEN}✓ Story implemented and committed${NC}"
-        echo -e "${YELLOW}Next: TEST YOUR APP, then run: ./bmad.sh code-review ${STORY_KEY}${NC}"
+        local app_noun_up
+        app_noun_up=$(echo "${BMAD_APP_NOUN:-app}" | tr '[:lower:]' '[:upper:]')
+        echo -e "${YELLOW}Next: TEST YOUR ${app_noun_up}, then run: ./bmad.sh code-review ${STORY_KEY}${NC}"
         ;;
         
     code-review)
