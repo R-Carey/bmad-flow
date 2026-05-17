@@ -319,6 +319,70 @@ show_important_messages() {
     fi
 }
 
+# Function to extract and display story-specific test guidance before the test pause
+show_story_test_hints() {
+    local story_key=$1
+    local story_file=$(ls "${STORIES_DIR}/${story_key}"*.md 2>/dev/null | head -1)
+
+    echo -e "\n${BOLD}${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+    echo -e "${BOLD}${YELLOW}📋  WHAT TO TEST — Story ${story_key}${NC}"
+    echo -e "${BOLD}${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+
+    if [ -z "$story_file" ]; then
+        echo -e "${YELLOW}⚠  No story file found — test manually based on epic requirements.${NC}\n"
+        return
+    fi
+
+    # Show automated test scenes (Godot pattern: *_test.tscn in scenes/)
+    local test_scenes
+    test_scenes=$(grep -oE 'scenes/[^ "]+_test\.tscn' "$story_file" 2>/dev/null | sort -u)
+    if [ -n "$test_scenes" ]; then
+        echo -e "${CYAN}🎮 Automated Test Scenes to Run (Godot):${NC}"
+        echo "$test_scenes" | while IFS= read -r scene; do
+            echo -e "  ${GREEN}▶${NC} Godot → FileSystem → ${BOLD}${scene}${NC}"
+            echo -e "     Clear Output → F6 → watch for PASS / Results summary"
+        done
+        echo ""
+    fi
+
+    # Show Acceptance Criteria section headers as a checklist
+    local ac_headers
+    ac_headers=$(grep -E '^### AC[0-9]' "$story_file" 2>/dev/null)
+    if [ -n "$ac_headers" ]; then
+        echo -e "${CYAN}✅ Acceptance Criteria to Verify:${NC}"
+        echo "$ac_headers" | while IFS= read -r ac; do
+            echo -e "  ${YELLOW}□${NC}  ${ac}"
+        done
+        echo ""
+    fi
+
+    # Show numbered test assertions (e.g. under AC5 or "Assertions" section)
+    local assertions
+    assertions=$(awk '/Assertions|AC5.*[Tt]est|automated test/,/^---/' "$story_file" 2>/dev/null \
+        | grep -E '^\s*[0-9]+\.' | head -15)
+    if [ -n "$assertions" ]; then
+        echo -e "${CYAN}🧪 Specific Assertions to Confirm:${NC}"
+        echo "$assertions" | while IFS= read -r line; do
+            echo -e "  ${YELLOW}□${NC}  ${line}"
+        done
+        echo ""
+    fi
+
+    # Surface any explicit MANUAL: notes in the story
+    local manual_items
+    manual_items=$(grep -iE 'MANUAL:|manually test|manual step' "$story_file" 2>/dev/null | head -5)
+    if [ -n "$manual_items" ]; then
+        echo -e "${RED}⚠️  Manual Steps Required:${NC}"
+        echo "$manual_items" | while IFS= read -r item; do
+            echo -e "  ${RED}▸${NC}  ${item}"
+        done
+        echo ""
+    fi
+
+    echo -e "${YELLOW}Complete the checks above before continuing to code review.${NC}"
+    echo -e "${BOLD}${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+}
+
 # Function to run AI with a prompt
 run_ai() {
     local prompt=$1
@@ -830,8 +894,9 @@ Create ${STORIES_DIR}/epic-${EPIC_NUM}-retro-$(date +%Y-%m-%d).md with: what wen
         fi
         
         if [[ "$story_status" == "in-progress" || "$story_status" == "review" ]]; then
-            echo -e "${YELLOW}⏸  TEST YOUR APP NOW!${NC}"
-            echo -e "${YELLOW}   Press Enter when ready for code review...${NC}"
+            show_story_test_hints "$STORY_KEY"
+            echo -e "${YELLOW}⏸  TEST YOUR APP NOW — review the checklist above${NC}"
+            echo -e "${YELLOW}   Press Enter when you have tested and are ready for code review...${NC}"
             read
             
             echo -e "${CYAN}Phase 3/3: Code Review${NC}\n"
