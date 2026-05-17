@@ -23,7 +23,15 @@ export BMAD_APP_NOUN="app"
 # Example: "Your Name <yourname@users.noreply.github.com>"
 export BMAD_GIT_COAUTHOR=""
 
-# Pattern (grep -oE) to find automated test files mentioned in story docs.
+# Test runner command the AI can call to headlessly verify its work.
+# Leave empty to skip — the AI will rely on code inspection instead.
+# Godot:   './run_tests.sh'    (see run_tests.sh in project root)
+# Jest:    'npx jest'
+# Pytest:  'pytest'
+# RSpec:   'bundle exec rspec'
+export BMAD_TEST_CMD=""
+
+
 # Leave empty to skip automated-test detection in the test-pause checklist.
 #
 # Godot:    'scenes/[^ "]+_test\.tscn'

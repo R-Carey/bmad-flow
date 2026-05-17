@@ -34,6 +34,7 @@ fi
 : ${BMAD_TEST_PASS_INDICATOR:=""}
 : ${BMAD_TEST_FAIL_INDICATOR:=""}
 : ${BMAD_GIT_COAUTHOR:=""}
+: ${BMAD_TEST_CMD:=""}
 : ${BMAD_STORIES_DIR:="_bmad-output/implementation-artifacts"}
 
 # Use config values
@@ -981,9 +982,13 @@ Include: title, context, testable acceptance criteria, technical approach, and d
             validate_story_file "$STORY_KEY" || exit 1
         fi
         
+        local _test_hint=""
+        [ -n "${BMAD_TEST_CMD:-}" ] && \
+            _test_hint=$'\n'"To run automated tests: ${BMAD_TEST_CMD} <test-file> (if binary unavailable it will print MANUAL instructions)"
+
         PROMPT="Implement story ${STORY_KEY}. Read ${STORIES_DIR}/${STORY_KEY}*.md for requirements.
 
-Implement all acceptance criteria. Follow the technical approach in the story file. Test your work.
+Implement all acceptance criteria. Follow the technical approach in the story file.${_test_hint}
 
 If you encounter blockers or cannot complete something, say 'MANUAL: <what needs attention>'.
 
