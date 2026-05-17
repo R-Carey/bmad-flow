@@ -265,24 +265,30 @@ fi
 echo ""
 
 echo -e "${BOLD}${CYAN}Next Steps:${NC}\n"
-echo -e "1. ${YELLOW}Review configuration:${NC}"
+echo -e "1. ${YELLOW}Check your configuration:${NC}"
+echo -e "   ./bmad.sh config"
+echo ""
+echo -e "2. ${YELLOW}Review or tweak settings:${NC}"
 echo -e "   nano bmad-config.sh"
 echo ""
-echo -e "2. ${YELLOW}Test it:${NC}"
+echo -e "3. ${YELLOW}Test it:${NC}"
 echo -e "   ./bmad.sh help"
 echo -e "   ./bmad.sh status 1"
 echo ""
-echo -e "3. ${YELLOW}Use it:${NC}"
+echo -e "4. ${YELLOW}Use it:${NC}"
 echo -e "   ./bmad.sh cycle 1-1"
 echo ""
 
 echo -e "${BOLD}${CYAN}Documentation:${NC}"
 echo -e "• Quick Start: ./bmad.sh help"
-if [ -f "./docs/QUICK-REFERENCE.md" ]; then
-    echo -e "• Cheat Sheet: cat docs/QUICK-REFERENCE.md"
+if [ -f "./docs/BMAD-QUICK-REFERENCE.md" ]; then
+    echo -e "• Cheat Sheet: cat docs/BMAD-QUICK-REFERENCE.md"
 fi
-if [ -f "./docs/WORKFLOWS.md" ]; then
-    echo -e "• Full Guide: cat docs/WORKFLOWS.md"
+if [ -f "./docs/BMAD-WORKFLOWS.md" ]; then
+    echo -e "• Full Guide:  cat docs/BMAD-WORKFLOWS.md"
+fi
+if [ -f "./docs/BMAD-INSTALLATION.md" ]; then
+    echo -e "• Install FAQ: cat docs/BMAD-INSTALLATION.md"
 fi
 echo ""
 

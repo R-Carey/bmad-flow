@@ -8,6 +8,8 @@
 # Documentation: See docs/BMAD-WORKFLOWS.md for detailed usage
 # ============================================================================
 
+BMAD_FLOW_VERSION="1.5.0"
+
 set -e
 
 # Load configuration from bmad-config.sh if it exists
@@ -121,18 +123,52 @@ validate_story_file() {
 validate_project_artifacts() {
     local story_key=$1
     local story_file=$(ls "${STORIES_DIR}/${story_key}"*.md 2>/dev/null | head -1)
-    
+
     echo -e "${BLUE}Validating project artifacts...${NC}"
-    
+
     if [ -z "$story_file" ]; then
         echo -e "${YELLOW}⚠ No story file found to validate artifacts${NC}"
         return 0
     fi
-    
-    if grep -q "\.gd\|\.tscn\|\.tres" "$story_file" 2>/dev/null; then
-        echo -e "${GREEN}✓ Story file found${NC}"
+
+    # Build extension grep pattern from BMAD_FILE_EXTENSIONS (e.g. ".gd .tscn .tres")
+    local ext_grep=""
+    if [ -n "${BMAD_FILE_EXTENSIONS:-}" ]; then
+        # Convert ".gd .tscn .tres" → "\.(gd|tscn|tres)"
+        ext_grep=$(echo "$BMAD_FILE_EXTENSIONS" | \
+            tr ' ' '\n' | sed 's/^\.//' | tr '\n' '|' | sed 's/|$//')
     else
-        echo -e "${YELLOW}⚠ No specific file references found in story${NC}"
+        # Fallback: common source/config extensions
+        ext_grep="gd|tscn|tres|js|ts|py|rb|dart|cs|vue|jsx|tsx"
+    fi
+
+    # Extract file-like references from the story
+    local file_refs
+    file_refs=$(grep -oE "[a-zA-Z0-9_./-]+\.(${ext_grep})" "$story_file" 2>/dev/null \
+        | sort -u | head -25)
+
+    if [ -z "$file_refs" ]; then
+        echo -e "${YELLOW}⚠ No file references detected in story — skipping artifact check${NC}"
+        return 0
+    fi
+
+    local found=0 missing=0
+    echo -e "${CYAN}Referenced files:${NC}"
+    while IFS= read -r f; do
+        if [ -f "$f" ]; then
+            echo -e "  ${GREEN}✓${NC} ${f}"
+            found=$((found + 1))
+        else
+            echo -e "  ${YELLOW}·${NC} ${f} ${YELLOW}(not yet created)${NC}"
+            missing=$((missing + 1))
+        fi
+    done <<< "$file_refs"
+
+    echo ""
+    if [ $found -gt 0 ]; then
+        echo -e "${GREEN}✓ ${found} artifact(s) present, ${missing} pending creation${NC}"
+    else
+        echo -e "${YELLOW}⚠ All referenced files are pending (expected before dev-story runs)${NC}"
     fi
 }
 
@@ -583,7 +619,7 @@ done
 
 if [ -z "$COMMAND" ]; then
     echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════╗${NC}"
-    echo -e "${BOLD}${CYAN}║      BMAD Flow - Workflow Automation       ║${NC}"
+    echo -e "${BOLD}${CYAN}║      BMAD Flow - Workflow Automation  v${BMAD_FLOW_VERSION}      ║${NC}"
     echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════╝${NC}"
     echo ""
     echo -e "${BOLD}INDIVIDUAL STORY COMMANDS:${NC}"
@@ -598,9 +634,11 @@ if [ -z "$COMMAND" ]; then
     echo -e "${BOLD}UTILITY COMMANDS:${NC}"
     echo -e "  ${BLUE}next${NC}                       Show what to do next (recommended command)"
     echo -e "  ${BLUE}status${NC} [epic-num]          Show epic progress and story status"
+    echo -e "  ${BLUE}config${NC}                     Show active configuration and binary status"
     echo -e "  ${BLUE}usage${NC}                      Show today's AI token/request usage"
     echo -e "  ${BLUE}retro${NC} <epic-num>           Generate epic retrospective"
     echo -e "  ${BLUE}preflight${NC} <story-key>      Validate story is ready for next phase"
+    echo -e "  ${BLUE}version${NC}                    Show bmad-flow version"
     echo -e "  ${BLUE}help${NC}                       Show this help message"
     echo ""
     echo -e "${BOLD}OPTIONS:${NC}"
@@ -668,7 +706,77 @@ case $COMMAND in
         show_session_usage
         exit 0
         ;;
-    
+
+    version)
+        echo "bmad-flow v${BMAD_FLOW_VERSION}"
+        exit 0
+        ;;
+
+    config)
+        echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${BOLD}${CYAN}║            BMAD Flow Configuration  v${BMAD_FLOW_VERSION}          ║${NC}"
+        echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════╝${NC}\n"
+
+        echo -e "${BOLD}Project:${NC}"
+        echo -e "  App noun:    ${CYAN}${BMAD_APP_NOUN}${NC}"
+        echo -e "  Tech stack:  ${CYAN}${BMAD_TECH_STACK:-not set}${NC}"
+        echo -e "  Status file: ${CYAN}${STATUS_FILE}${NC}"
+        echo -e "  Stories dir: ${CYAN}${STORIES_DIR}${NC}"
+        if [ -n "${BMAD_FILE_EXTENSIONS:-}" ]; then
+            echo -e "  File exts:   ${CYAN}${BMAD_FILE_EXTENSIONS}${NC}"
+        fi
+        echo ""
+
+        echo -e "${BOLD}AI Configuration:${NC}"
+        echo -e "  ${CYAN}Phase 1 — Create Story:${NC}  ${DEFAULT_CREATE_CLI} / ${DEFAULT_CREATE_MODEL}"
+        echo -e "  ${CYAN}Phase 2 — Dev Story:${NC}     ${DEFAULT_DEV_CLI} / ${DEFAULT_DEV_MODEL}"
+        echo -e "  ${CYAN}Phase 3 — Code Review:${NC}   ${DEFAULT_REVIEW_CLI} / ${DEFAULT_REVIEW_MODEL}"
+        echo ""
+
+        echo -e "${BOLD}Binaries:${NC}"
+        if command -v "$CLAUDE_BIN" &>/dev/null; then
+            echo -e "  ${GREEN}✓ Claude CLI:${NC}  $CLAUDE_BIN  $(${CLAUDE_BIN} --version 2>/dev/null | head -1 || true)"
+        else
+            echo -e "  ${RED}✗ Claude CLI:${NC}  $CLAUDE_BIN  ${RED}← not found!${NC}"
+        fi
+        if command -v "$COPILOT_BIN" &>/dev/null; then
+            echo -e "  ${GREEN}✓ Copilot CLI:${NC} $COPILOT_BIN"
+        else
+            echo -e "  ${RED}✗ Copilot CLI:${NC} $COPILOT_BIN  ${RED}← not found!${NC}"
+        fi
+        echo ""
+
+        echo -e "${BOLD}Testing:${NC}"
+        if [ -n "${BMAD_TEST_CMD:-}" ]; then
+            echo -e "  Test command: ${CYAN}${BMAD_TEST_CMD}${NC}"
+        else
+            echo -e "  Test command: ${YELLOW}not configured${NC}"
+        fi
+        if [ -n "${BMAD_TEST_FILE_PATTERN:-}" ]; then
+            echo -e "  Test pattern: ${CYAN}${BMAD_TEST_FILE_PATTERN}${NC}"
+        else
+            echo -e "  Test pattern: ${YELLOW}not configured${NC}"
+        fi
+        [ -n "${BMAD_TEST_RUN_INSTRUCTIONS:-}" ] && \
+            echo -e "  How to run:   ${CYAN}${BMAD_TEST_RUN_INSTRUCTIONS}${NC}"
+        [ -n "${BMAD_TEST_PASS_INDICATOR:-}" ] && \
+            echo -e "  Pass looks:   ${GREEN}${BMAD_TEST_PASS_INDICATOR}${NC}"
+        [ -n "${BMAD_TEST_FAIL_INDICATOR:-}" ] && \
+            echo -e "  Fail looks:   ${RED}${BMAD_TEST_FAIL_INDICATOR}${NC}"
+        echo ""
+
+        echo -e "${BOLD}Git:${NC}"
+        if [ -n "${BMAD_GIT_COAUTHOR:-}" ]; then
+            echo -e "  Co-author: ${CYAN}${BMAD_GIT_COAUTHOR}${NC}"
+        else
+            echo -e "  Co-author: ${YELLOW}not configured (set BMAD_GIT_COAUTHOR in bmad-config.sh)${NC}"
+        fi
+        echo ""
+
+        echo -e "${YELLOW}To edit: nano bmad-config.sh${NC}"
+        exit 0
+        ;;
+
     next)
         # Show what to do next
         echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════╗${NC}"
