@@ -205,6 +205,26 @@ count_stories_by_status() {
     done | wc -l | tr -d ' '
 }
 
+# Function to auto-complete an epic when all its stories are done
+check_and_complete_epic() {
+    local epic_num=$1
+    local epic_status=$(get_status "epic-${epic_num}")
+
+    if [ "$epic_status" = "done" ]; then
+        return 0
+    fi
+
+    local total=$(get_epic_stories "$epic_num" | wc -l | tr -d ' ')
+    local done_count=$(count_stories_by_status "$epic_num" "done")
+
+    if [ "$total" -gt 0 ] && [ "$done_count" -eq "$total" ]; then
+        update_status "epic-${epic_num}" "done"
+        echo -e "${GREEN}✓ Epic ${epic_num} complete — all ${total} stories done${NC}"
+        return 0
+    fi
+    return 1
+}
+
 # Function to display epic status
 show_epic_status() {
     local epic_num=$1
@@ -782,23 +802,56 @@ case $COMMAND in
         echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════╗${NC}"
         echo -e "${BOLD}${CYAN}║                    What's Next?                           ║${NC}"
         echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════╝${NC}\n"
-        
-        # Find the current active epic
-        local active_epic=$(grep "^  epic-[0-9]*:" "$STATUS_FILE" | grep "in-progress" | head -1 | sed 's/.*epic-\([0-9]*\).*/\1/')
-        
+
+        # Find the active epic — first in-progress, or first backlog if none in-progress
+        local active_epic=""
+
+        # Scan all epics in order; skip done, pick first in-progress or backlog
+        local all_epics=$(grep "^  epic-[0-9]*:" "$STATUS_FILE" | sed 's/.*epic-\([0-9]*\).*/\1/' | sort -n)
+
+        while IFS= read -r candidate; do
+            local e_status=$(get_status "epic-${candidate}")
+            if [ "$e_status" = "done" ]; then
+                continue
+            fi
+
+            # Epic is in-progress — check if it's actually complete
+            if [ "$e_status" = "in-progress" ]; then
+                local e_total=$(get_epic_stories "$candidate" | wc -l | tr -d ' ')
+                local e_done=$(count_stories_by_status "$candidate" "done")
+                if [ "$e_total" -gt 0 ] && [ "$e_done" -eq "$e_total" ]; then
+                    # All stories done — check retro
+                    local retro_status=$(get_status "epic-${candidate}-retrospective")
+                    if [ "$retro_status" = "optional" ]; then
+                        echo -e "${GREEN}✓ All stories in Epic ${candidate} are done!${NC}"
+                        echo -e "${YELLOW}Run: ./bmad.sh retro ${candidate}${NC}"
+                        echo -e "${CYAN}  (or mark epic-${candidate} as done in sprint-status.yaml to skip)${NC}\n"
+                        exit 0
+                    fi
+                    # Retro is done too — auto-complete this epic and move on
+                    check_and_complete_epic "$candidate"
+                    continue
+                fi
+            fi
+
+            active_epic="$candidate"
+            break
+        done <<< "$all_epics"
+
         if [ -z "$active_epic" ]; then
-            echo -e "${YELLOW}No active epic found. Start one with: ./bmad.sh cycle <story-key>${NC}"
+            echo -e "${GREEN}✓ All epics are complete! Nothing left to do.${NC}"
+            echo -e "${YELLOW}Add new epics to sprint-status.yaml to continue.${NC}"
             exit 0
         fi
-        
+
         echo -e "${CYAN}Active Epic:${NC} ${active_epic}"
         echo ""
-        
+
         # Find first non-done story and its status
         local next_story=""
         local next_status=""
         local next_cmd=""
-        
+
         while IFS= read -r story; do
             local s_status=$(get_status "$story")
             if [ "$s_status" != "done" ]; then
@@ -807,13 +860,20 @@ case $COMMAND in
                 break
             fi
         done <<< "$(get_epic_stories "$active_epic")"
-        
+
         if [ -z "$next_story" ]; then
-            echo -e "${GREEN}✓ All stories in Epic ${active_epic} are done!${NC}"
-            echo -e "${YELLOW}Run: ./bmad.sh retro ${active_epic}${NC}"
+            # Shouldn't reach here due to loop above, but handle gracefully
+            local retro_status=$(get_status "epic-${active_epic}-retrospective")
+            if [ "$retro_status" != "done" ]; then
+                echo -e "${GREEN}✓ All stories in Epic ${active_epic} are done!${NC}"
+                echo -e "${YELLOW}Run: ./bmad.sh retro ${active_epic}${NC}"
+            else
+                check_and_complete_epic "$active_epic"
+                echo -e "${YELLOW}Re-run ./bmad.sh next to find the next epic${NC}"
+            fi
             exit 0
         fi
-        
+
         # Determine the right command based on status
         case $next_status in
             backlog)
@@ -832,7 +892,7 @@ case $COMMAND in
                 echo -e "${CYAN}Action:${NC}     Run code review"
                 ;;
         esac
-        
+
         echo ""
         echo -e "${GREEN}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
         echo -e "${GREEN}▶ Run:${NC}  ${BOLD}${next_cmd}${NC}"
@@ -840,7 +900,7 @@ case $COMMAND in
         echo ""
         echo -e "${YELLOW}Or run full automated cycle:${NC} ${BOLD}./bmad.sh cycle ${next_story}${NC}"
         echo ""
-        
+
         # Show quick progress
         local total=$(get_epic_stories "$active_epic" | wc -l | tr -d ' ')
         local done_count=$(count_stories_by_status "$active_epic" "done")
@@ -919,6 +979,10 @@ Create ${STORIES_DIR}/epic-${EPIC_NUM}-retro-$(date +%Y-%m-%d).md with: what wen
 
         run_ai "$_AI_PROMPT" "$CLI" "$MODEL"
         update_status "epic-${EPIC_NUM}-retrospective" "done"
+
+        # Auto-complete epic if all stories are done
+        check_and_complete_epic "$EPIC_NUM"
+
         git_commit "epic-${EPIC_NUM}" "retrospective"
         
         echo -e "${GREEN}✓ Retrospective generated and committed${NC}"
@@ -1208,6 +1272,11 @@ Summarize: AC results (pass/fail), bugs fixed, and anything left for manual veri
         
         echo -e "${GREEN}✓ Code review complete and committed${NC}"
         echo -e "${GREEN}✓ Story ${STORY_KEY} is DONE!${NC}"
+
+        # Auto-complete epic if all stories are done
+        local epic_num_cr=$(echo "$STORY_KEY" | sed 's/-.*//')
+        check_and_complete_epic "$epic_num_cr"
+
         echo -e "${YELLOW}Next: Move to the next story${NC}"
         ;;
         
