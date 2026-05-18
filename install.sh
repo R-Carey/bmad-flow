@@ -117,7 +117,7 @@ FILE_EXTENSIONS=".example"
 if [ -f "project.godot" ]; then
     PROJECT_TYPE="Godot"
     FILE_EXTENSIONS=".gd .tscn .tres"
-elif [ -f "ProjectSettings/ProjectSettings.asset" ] || [ -d "Assets" ]; then
+elif [ -f "ProjectSettings/ProjectSettings.asset" ] || ([ -d "Assets" ] && [ -d "Library" ] && [ -d "Packages" ]); then
     PROJECT_TYPE="Unity"
     FILE_EXTENSIONS=".cs .prefab .unity .asset"
 elif [ -f "package.json" ]; then
