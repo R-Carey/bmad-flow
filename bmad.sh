@@ -81,7 +81,8 @@ update_status() {
 get_status() {
     local story_key=$1
     # Match the story key as a prefix (handles both "2-7" and full "2-7-three-resolution-types")
-    grep "^  ${story_key}[:-]" "$STATUS_FILE" 2>/dev/null | awk '{print $2}'
+    # head -1 ensures "epic-1" matches only "epic-1:" not "epic-1-retrospective:"
+    grep "^  ${story_key}[:-]" "$STATUS_FILE" 2>/dev/null | head -1 | awk '{print $2}'
 }
 
 # Function to check if git working directory is clean
