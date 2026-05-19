@@ -8,7 +8,7 @@
 # Documentation: See docs/BMAD-WORKFLOWS.md for detailed usage
 # ============================================================================
 
-BMAD_FLOW_VERSION="1.5.0"
+BMAD_FLOW_VERSION="1.6.0"
 
 set -e
 
@@ -384,22 +384,25 @@ show_important_messages() {
 }
 
 # Function to extract and display story-specific test guidance before the test pause
+# Zero AI tokens — parses the story file directly with shell tools
 show_story_test_hints() {
     local story_key=$1
     local story_file=$(ls "${STORIES_DIR}/${story_key}"*.md 2>/dev/null | head -1)
+    local app_noun="${BMAD_APP_NOUN:-app}"
+    local tech_stack="${BMAD_TECH_STACK:-}"
 
     echo -e "\n${BOLD}${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
     echo -e "${BOLD}${YELLOW}📋  WHAT TO TEST — Story ${story_key}${NC}"
+    [ -n "$tech_stack" ] && echo -e "${CYAN}    Stack: ${tech_stack}${NC}"
     echo -e "${BOLD}${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 
     if [ -z "$story_file" ]; then
-        echo -e "${YELLOW}⚠  No story file found — test manually based on epic requirements.${NC}\n"
+        echo -e "${YELLOW}⚠  No story file found — test manually based on epic requirements.${NC}"
+        echo -e "${CYAN}💡 Tip: Run ${BOLD}./bmad.sh test-guide ${story_key}${NC}${CYAN} for AI-generated step-by-step instructions.${NC}\n"
         return
     fi
 
-    local app_noun="${BMAD_APP_NOUN:-app}"
-
-    # Show automated test files if a pattern is configured in bmad-config.sh
+    # ── Automated test files ──────────────────────────────────────────────────
     if [ -n "${BMAD_TEST_FILE_PATTERN:-}" ]; then
         local test_files
         test_files=$(grep -oE "$BMAD_TEST_FILE_PATTERN" "$story_file" 2>/dev/null | sort -u)
@@ -410,7 +413,8 @@ show_story_test_hints() {
             [ -n "${BMAD_TEST_PASS_INDICATOR:-}" ] && \
                 echo -e "${BLUE}   ✅ Pass:${NC}    ${BMAD_TEST_PASS_INDICATOR}"
             [ -n "${BMAD_TEST_FAIL_INDICATOR:-}" ] && \
-                echo -e "${BLUE}   ❌ Fail:${NC}    ${BMAD_TEST_FAIL_INDICATOR}\n"
+                echo -e "${BLUE}   ❌ Fail:${NC}    ${BMAD_TEST_FAIL_INDICATOR}"
+            echo ""
             echo "$test_files" | while IFS= read -r f; do
                 echo -e "  ${GREEN}▶${NC}  ${BOLD}${f}${NC}"
             done
@@ -418,42 +422,45 @@ show_story_test_hints() {
         fi
     fi
 
-    # Show Acceptance Criteria section headers as a checklist
-    local ac_headers
-    ac_headers=$(grep -E '^### AC[0-9]' "$story_file" 2>/dev/null)
-    if [ -n "$ac_headers" ]; then
-        echo -e "${CYAN}✅ Acceptance Criteria to Verify:${NC}"
-        echo -e "${BLUE}   The code review AI will check these — spot-check them in your ${app_noun} too.${NC}\n"
-        echo "$ac_headers" | while IFS= read -r ac; do
-            echo -e "  ${YELLOW}□${NC}  ${ac}"
+    # ── Acceptance Criteria — parse numbered AC list (Given/When/Then format) ─
+    # Extracts lines like: "1. **Given** I am on..." or "AC1 — ..."
+    local ac_items
+    ac_items=$(awk '
+        /^## Acceptance Criteria/,/^## / {
+            if (/^[[:space:]]*[0-9]+\.[[:space:]]/) print
+        }
+    ' "$story_file" 2>/dev/null | head -20)
+
+    # Fallback: try ### AC headers
+    if [ -z "$ac_items" ]; then
+        ac_items=$(grep -E '^### AC[0-9]' "$story_file" 2>/dev/null)
+    fi
+
+    if [ -n "$ac_items" ]; then
+        echo -e "${CYAN}✅ Acceptance Criteria — verify each in your ${app_noun}:${NC}\n"
+        local ac_num=0
+        echo "$ac_items" | while IFS= read -r line; do
+            ac_num=$((ac_num + 1))
+            # Strip markdown bold markers for cleaner display
+            local clean=$(echo "$line" | sed 's/\*\*//g' | sed 's/^[[:space:]]*//')
+            echo -e "  ${YELLOW}□ ${ac_num}.${NC}  ${clean}"
         done
         echo ""
     fi
 
-    # Show numbered test assertions (e.g. under AC5 or "Assertions" section)
-    local assertions
-    assertions=$(awk '/Assertions|AC5.*[Tt]est|automated test/,/^---/' "$story_file" 2>/dev/null \
-        | grep -E '^\s*[0-9]+\.' | head -15)
-    if [ -n "$assertions" ]; then
-        echo -e "${CYAN}🔬 Specific Assertions (the automated tests cover these):${NC}"
-        echo "$assertions" | while IFS= read -r line; do
-            echo -e "  ${YELLOW}□${NC}  ${line}"
-        done
-        echo ""
-    fi
-
-    # Surface any explicit MANUAL: notes in the story
+    # ── MANUAL notes in story file ────────────────────────────────────────────
     local manual_items
     manual_items=$(grep -iE 'MANUAL:|manually test|manual step' "$story_file" 2>/dev/null | head -5)
     if [ -n "$manual_items" ]; then
-        echo -e "${RED}⚠️  Manual Steps Required:${NC}"
+        echo -e "${RED}⚠️  Manual Steps Called Out in Story:${NC}"
         echo "$manual_items" | while IFS= read -r item; do
-            echo -e "  ${RED}▸${NC}  ${item}"
+            echo -e "  ${RED}▸${NC}  $(echo "$item" | sed 's/\*\*//g')"
         done
         echo ""
     fi
 
-    echo -e "${YELLOW}Complete the checks above before continuing — the code review will verify ACs are implemented.${NC}"
+    echo -e "${YELLOW}Test the above before continuing to code review.${NC}"
+    echo -e "${CYAN}💡 Need detailed step-by-step instructions?${NC} Run: ${BOLD}./bmad.sh test-guide ${story_key}${NC}"
     echo -e "${BOLD}${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 }
 
@@ -655,6 +662,7 @@ if [ -z "$COMMAND" ]; then
     echo -e "${BOLD}UTILITY COMMANDS:${NC}"
     echo -e "  ${BLUE}next${NC}                       Show what to do next (recommended command)"
     echo -e "  ${BLUE}status${NC} [epic-num]          Show epic progress and story status"
+    echo -e "  ${BLUE}test-guide${NC} <story-key>     Generate step-by-step test instructions (AI)"
     echo -e "  ${BLUE}config${NC}                     Show active configuration and binary status"
     echo -e "  ${BLUE}usage${NC}                      Show today's AI token/request usage"
     echo -e "  ${BLUE}retro${NC} <epic-num>           Generate epic retrospective"
@@ -961,6 +969,80 @@ case $COMMAND in
         exit 0
         ;;
         
+    test-guide)
+        # Generate AI-powered step-by-step test instructions for a story
+        if [ -z "$STORY_KEY" ]; then
+            echo -e "${RED}Usage: ./bmad.sh test-guide <story-key>${NC}"
+            exit 1
+        fi
+
+        local tg_story_file=$(ls "${STORIES_DIR}/${STORY_KEY}"*.md 2>/dev/null | head -1)
+        if [ -z "$tg_story_file" ]; then
+            echo -e "${RED}✗ Story file not found: ${STORIES_DIR}/${STORY_KEY}*.md${NC}"
+            echo -e "${YELLOW}Run: ./bmad.sh create-story ${STORY_KEY}${NC}"
+            exit 1
+        fi
+
+        # Use the fast/cheap model — this is a summarization task, not complex reasoning
+        local tg_cli="${USE_CLI:-$DEFAULT_CREATE_CLI}"
+        local tg_model="${USE_MODEL:-$DEFAULT_CREATE_MODEL}"
+
+        # Pre-extract ACs from the story file with shell tools to minimize tokens sent
+        local tg_acs
+        tg_acs=$(awk '
+            /^## Acceptance Criteria/,/^## / {
+                if (/^[[:space:]]*[0-9]+\.[[:space:]]/) print
+            }
+        ' "$tg_story_file" 2>/dev/null)
+        # Fallback to inline bold format
+        if [ -z "$tg_acs" ]; then
+            tg_acs=$(grep -E '^\*\*AC[0-9]|^[0-9]+\.\s+\*\*(Given|When|Then|AC)' "$tg_story_file" 2>/dev/null | head -20)
+        fi
+
+        local tg_tech="${BMAD_TECH_STACK:-${BMAD_APP_NOUN:-app}}"
+        local tg_noun="${BMAD_APP_NOUN:-app}"
+
+        echo -e "${BOLD}${CYAN}╔═══════════════════════════════════════════════════════════╗${NC}"
+        echo -e "${BOLD}${CYAN}║          Generating Test Guide — Story ${STORY_KEY}           ║${NC}"
+        echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════╝${NC}\n"
+        echo -e "${CYAN}Using: ${tg_cli} / ${tg_model} (fast model — test-guide is token-efficient)${NC}\n"
+
+        _AI_PROMPT="You are a QA engineer writing manual test instructions for a developer.
+
+Story file: ${tg_story_file}
+Tech stack: ${tg_tech}
+App noun: ${tg_noun}
+
+Pre-extracted Acceptance Criteria:
+${tg_acs:-See story file}
+
+Task: Read the story file to understand the full implementation (components, screens, functions, UI elements created). Then write a numbered, step-by-step manual test guide that a developer can follow on their device/browser/editor right now.
+
+Rules:
+- Use the EXACT names of UI elements, buttons, screens, functions found in the implementation
+- Each step must have a concrete Expected result
+- Group steps by AC when helpful
+- Mention device/environment requirements upfront (physical device, simulator, browser, editor)
+- Flag any steps that are hard to test (e.g. need permission denial, network failure) with [HARD TO TRIGGER]
+- Be concise — no preamble, no theory, just numbered steps
+
+Format:
+## Prerequisites
+[device/environment needed]
+
+## Test 1: [AC name] (ACn)
+1. [action]
+   Expected: [result]
+2. ...
+
+## Checklist
+- [ ] ...one line per AC"
+
+        run_ai "$_AI_PROMPT" "$tg_cli" "$tg_model"
+        echo ""
+        exit 0
+        ;;
+
     retro)
         # Generate retrospective
         EPIC_NUM=$STORY_KEY

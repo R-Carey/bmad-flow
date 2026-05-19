@@ -147,6 +147,7 @@ After Epic Completion:
 | `code-review` | story-key | Review & fix | 3-10 min |
 | `cycle` | story-key | Full story workflow | 10-30 min |
 | `epic` | epic# | All stories in epic | Hours |
+| `test-guide` | story-key | AI step-by-step test instructions | 1-3 min |
 | `retro` | epic# | Generate retrospective | 5 min |
 | `preflight` | story-key | Validate readiness | 5s |
 | `usage` | - | Show today's AI usage | 1s |
@@ -393,6 +394,10 @@ Need to...
 ├─ Work on MANY stories?
 │  └─ ./bmad.sh epic <epic#>
 │
+├─ Need test instructions for a story?
+│  ├─ Basic (zero tokens): test hints auto-shown at cycle pause
+│  └─ Detailed (AI): ./bmad.sh test-guide <story-key>
+│
 ├─ Validate before starting?
 │  └─ ./bmad.sh preflight <story-key>
 │
@@ -405,10 +410,11 @@ Need to...
 ## 💡 Pro Tips
 
 1. **Always run status first** - Know where you are
-2. **Test after dev-story** - Catch issues early
-3. **Use different models for review** - Different AI = different bugs caught
-4. **Run preflight when unsure** - Validates everything
-5. **Generate retro after epic** - Learn and improve
+2. **Test after dev-story** - Catch issues early; ACs shown automatically at the cycle pause
+3. **Use `test-guide` for complex stories** - AI generates device-level steps from your actual implementation
+4. **Use different models for review** - Different AI = different bugs caught
+5. **Run preflight when unsure** - Validates everything
+6. **Generate retro after epic** - Learn and improve
 
 ---
 

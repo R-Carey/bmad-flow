@@ -97,7 +97,7 @@ These run a single phase of the BMAD workflow.
 
 **Default Model**: Claude Sonnet 4.6 (creative, great at implementation)
 
-**⚠️ CRITICAL**: Test your game after this phase!
+**⚠️ CRITICAL**: Test your app after this phase! The cycle pause automatically shows your story's acceptance criteria as a checklist. For detailed step-by-step instructions run `./bmad.sh test-guide <story-key>`.
 
 **AI-fail pause**: If the AI exits with a non-zero status, `bmad.sh` displays a prominent warning banner and prompts `y/n` before proceeding to code review — giving you the chance to investigate and fix issues rather than silently advancing.
 
@@ -162,7 +162,9 @@ create-story 2-7
   ↓
 dev-story 2-7
   ↓
-[Pause - TEST YOUR GAME]
+[Pause - TEST YOUR APP]
+  │  AC checklist shown automatically (zero tokens)
+  │  Optional: ./bmad.sh test-guide 2-7  ← AI step-by-step guide
   ↓
 code-review 2-7
   ↓
@@ -255,6 +257,31 @@ Stories by Status:
   · 2-8-health-defeat-respawn (backlog)
   ...
 ```
+
+---
+
+#### `test-guide <story-key>`
+
+**Purpose**: Generate AI-powered, step-by-step manual test instructions for a story
+
+**When to use**: After `dev-story` completes, especially for complex stories with device interactions, camera, permissions, or multi-step flows
+
+**What it does**:
+1. Reads the story file to extract acceptance criteria
+2. Reads the implementation files to learn exact UI element names and flow
+3. Generates numbered, device-specific test steps using your configured model
+4. Flags steps that are hard to trigger (permission denial, network errors, etc.)
+
+**Token cost**: Low — uses the fast `create` model (Claude Sonnet by default), pre-extracts ACs with shell tools before sending to AI
+
+**Example**:
+```bash
+./bmad.sh test-guide 4-1
+# Or with a specific model:
+./bmad.sh test-guide 4-1 --cli claude --model sonnet
+```
+
+**Note**: Basic AC checklist is shown automatically (zero tokens) at the test pause in `cycle`. Use `test-guide` when you need precise, implementation-aware, step-by-step instructions.
 
 ---
 

@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-05-18
+
+### Added
+- **`test-guide` command**: AI-generated step-by-step manual test instructions for any story
+  - Reads the story file and implementation to produce device-specific, numbered test steps
+  - Uses exact UI element names and button labels from the actual code
+  - Flags steps that are hard to trigger (permission denial, network errors, etc.)
+  - Token-efficient: pre-extracts ACs with shell tools before calling AI; uses fast Sonnet model
+  - Works across all project types (React Native, Next.js, Godot, Django, Flutter, etc.)
+- **Enhanced test pause (`show_story_test_hints`)**: Zero-token AC checklist shown automatically during `cycle` test pause
+  - Parses Acceptance Criteria directly from the story file using shell tools (no AI call)
+  - Displays tech stack context from `BMAD_TECH_STACK`
+  - Strips markdown formatting for clean terminal display
+  - Shows `MANUAL:` notes from the story file
+  - Hints user to run `test-guide` when they need more detail
+
+### Fixed
+- **Epic auto-completion**: Epics now automatically transition to `done` when all stories are complete
+  - `code-review` triggers the check after marking the last story done
+  - `retro` triggers the check after the retrospective completes
+- **`next` command advancement**: Properly scans past fully completed epics instead of repeatedly suggesting `retro` for already-retroed epics
+- **`get_status()` multi-match bug**: Added `head -1` to prevent `epic-1` matching both `epic-1:` and `epic-1-retrospective:` lines, which caused status comparisons to silently fail
+- **Unity false-positive detection**: `install.sh` now requires all three of `Assets/`, `Library/`, and `Packages/` directories to detect Unity, preventing false positives on projects with a generic `assets/` folder (common in React Native/Expo)
+
 ## [1.4.0] - 2026-05-14
 
 ### Added
