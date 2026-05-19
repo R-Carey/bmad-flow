@@ -108,10 +108,19 @@ check_git_clean() {
 # Function to validate story file exists
 validate_story_file() {
     local story_key=$1
-    
+
     # Find story file by prefix (e.g., "2-7" matches "2-7-three-resolution-types.md")
     local story_file=$(ls "${STORIES_DIR}/${story_key}"*.md 2>/dev/null | head -1)
-    
+
+    # Fallback: if key has a slug (e.g., "2-14-combat-feel-tuning"), try the numeric prefix only
+    if [ -z "$story_file" ]; then
+        local numeric_prefix=$(echo "$story_key" | grep -oE '^[0-9]+-[0-9]+')
+        if [ -n "$numeric_prefix" ] && [ "$numeric_prefix" != "$story_key" ]; then
+            story_file=$(ls "${STORIES_DIR}/${numeric_prefix}"*.md 2>/dev/null | head -1)
+            [ -n "$story_file" ] && echo -e "${YELLOW}⚠ Story file found as ${story_file} (key mismatch — consider renaming to ${story_key}.md)${NC}"
+        fi
+    fi
+
     if [ -z "$story_file" ] || [ ! -f "$story_file" ]; then
         echo -e "${RED}✗ Story file not found: ${STORIES_DIR}/${story_key}*.md${NC}"
         echo -e "${YELLOW}Run: ./bmad.sh create-story ${story_key}${NC}"
@@ -224,6 +233,28 @@ check_and_complete_epic() {
         return 0
     fi
     return 1
+}
+
+# Warn if any done epic still has non-done stories (orphaned after late additions)
+warn_orphaned_stories() {
+    local all_epics=$(grep "^  epic-[0-9]*:" "$STATUS_FILE" | sed 's/.*epic-\([0-9]*\).*/\1/' | sort -n)
+    local warned=0
+    while IFS= read -r epic_num; do
+        local e_status=$(get_status "epic-${epic_num}")
+        [ "$e_status" != "done" ] && continue
+        while IFS= read -r story; do
+            local s_status=$(get_status "$story")
+            if [ "$s_status" != "done" ]; then
+                if [ "$warned" -eq 0 ]; then
+                    echo -e "${YELLOW}⚠ Warning: done epic(s) have unfinished stories:${NC}"
+                    warned=1
+                fi
+                echo -e "  ${YELLOW}epic-${epic_num} is 'done' but ${story} is '${s_status}'${NC}"
+            fi
+        done <<< "$(get_epic_stories "$epic_num")"
+    done <<< "$all_epics"
+    [ "$warned" -gt 0 ] && echo ""
+    return 0
 }
 
 # Function to display epic status
@@ -812,6 +843,8 @@ case $COMMAND in
         echo -e "${BOLD}${CYAN}║                    What's Next?                           ║${NC}"
         echo -e "${BOLD}${CYAN}╚═══════════════════════════════════════════════════════════╝${NC}\n"
 
+        warn_orphaned_stories
+
         # Find the active epic — first in-progress, or first backlog if none in-progress
         local active_epic=""
 
@@ -926,6 +959,7 @@ case $COMMAND in
             echo -e "${RED}Usage: ./bmad.sh status <epic-number>${NC}"
             exit 1
         fi
+        warn_orphaned_stories
         show_epic_status "$EPIC_NUM"
         exit 0
         ;;
