@@ -1214,8 +1214,14 @@ Create ${STORIES_DIR}/epic-${EPIC_NUM}-retro-$(date +%Y-%m-%d).md with: what wen
             local _app_noun_up
             _app_noun_up=$(echo "${BMAD_APP_NOUN:-app}" | tr '[:lower:]' '[:upper:]')
             echo -e "${YELLOW}⏸  TEST YOUR ${_app_noun_up} NOW — review the checklist above${NC}"
-            echo -e "${YELLOW}   Press Enter when you have tested and are ready for code review...${NC}"
-            read
+            echo -e "${YELLOW}   Describe any issues found (or press Enter if all good):${NC}"
+            echo -e "${YELLOW}   Type 'abort' or 'stop' to exit and fix before code review${NC}"
+            read TEST_NOTES
+            if [[ "$TEST_NOTES" == "abort" || "$TEST_NOTES" == "stop" ]]; then
+                echo -e "${RED}Aborted — fix the issues above, then run: ./bmad.sh code-review ${STORY_KEY}${NC}"
+                exit 1
+            fi
+            export BMAD_TEST_NOTES="${TEST_NOTES}"
             
             echo -e "${CYAN}Phase 3/3: Code Review${NC}\n"
             if ! $0 code-review "$STORY_KEY" "${extra_args[@]}"; then
@@ -1346,7 +1352,17 @@ Summarize what was implemented when done."
                 awk '{print NR". "$0}')
         fi
 
-        _AI_PROMPT="Code review for story ${STORY_KEY}.
+        local _test_notes_section=""
+        if [ -n "${BMAD_TEST_NOTES}" ]; then
+            _test_notes_section="KNOWN ISSUES FROM MANUAL TESTING:
+${BMAD_TEST_NOTES}
+
+Address these observed issues first before doing the general review.
+
+"
+        fi
+
+        _AI_PROMPT="${_test_notes_section}Code review for story ${STORY_KEY}.
 
 STEP 1 — READ THE STORY: Read ${STORIES_DIR}/${STORY_KEY}*.md for the full requirements and acceptance criteria.
 
