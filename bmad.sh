@@ -871,7 +871,7 @@ case $COMMAND in
                         exit 0
                     fi
                     # Retro is done too — auto-complete this epic and move on
-                    check_and_complete_epic "$candidate"
+                    check_and_complete_epic "$candidate" || true
                     continue
                 fi
             fi
@@ -910,7 +910,7 @@ case $COMMAND in
                 echo -e "${GREEN}✓ All stories in Epic ${active_epic} are done!${NC}"
                 echo -e "${YELLOW}Run: ./bmad.sh retro ${active_epic}${NC}"
             else
-                check_and_complete_epic "$active_epic"
+                check_and_complete_epic "$active_epic" || true
                 echo -e "${YELLOW}Re-run ./bmad.sh next to find the next epic${NC}"
             fi
             exit 0
@@ -1098,7 +1098,7 @@ Create ${STORIES_DIR}/epic-${EPIC_NUM}-retro-$(date +%Y-%m-%d).md with: what wen
         update_status "epic-${EPIC_NUM}-retrospective" "done"
 
         # Auto-complete epic if all stories are done
-        check_and_complete_epic "$EPIC_NUM"
+        check_and_complete_epic "$EPIC_NUM" || true
 
         git_commit "epic-${EPIC_NUM}" "retrospective"
         
@@ -1392,7 +1392,7 @@ Summarize: AC results (pass/fail), bugs fixed, and anything left for manual veri
 
         # Auto-complete epic if all stories are done
         local epic_num_cr=$(echo "$STORY_KEY" | sed 's/-.*//')
-        check_and_complete_epic "$epic_num_cr"
+        check_and_complete_epic "$epic_num_cr" || true
 
         echo -e "${YELLOW}Next: Move to the next story${NC}"
         ;;
