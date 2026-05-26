@@ -552,8 +552,11 @@ run_ai() {
         return $exit_code
         
     elif [ "$cli" = "copilot" ]; then
-        if [ -n "$model" ]; then
-            $COPILOT_BIN -p "$prompt" --model "$model" --allow-all-tools > "$output_file" 2>&1 &
+        # Copilot CLI uses dots in version numbers (claude-sonnet-4.6), not dashes (4-6).
+        # Normalize: convert digit-dash-digit → digit.digit so both CLI configs work.
+        local copilot_model=$(echo "$model" | sed 's/\([0-9]\)-\([0-9]\)/\1.\2/g')
+        if [ -n "$copilot_model" ]; then
+            $COPILOT_BIN -p "$prompt" --model "$copilot_model" --allow-all-tools > "$output_file" 2>&1 &
         else
             $COPILOT_BIN -p "$prompt" --allow-all-tools > "$output_file" 2>&1 &
         fi
