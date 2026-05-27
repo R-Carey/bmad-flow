@@ -1365,6 +1365,13 @@ Address these observed issues first before doing the general review.
 "
         fi
 
+        local _cr_test_hint=""
+        [ -n "${BMAD_TEST_CMD:-}" ] && \
+            _cr_test_hint=$'\n\n'"AUTOMATED TESTS: You CAN run headless tests using: ${BMAD_TEST_CMD} <test-file.tscn>
+The script auto-detects the Godot binary (tries \`godot4\`, \`godot\`, then /Applications/Godot.app/Contents/MacOS/Godot).
+If the binary is unavailable it prints MANUAL instructions and exits cleanly — it will NOT hang.
+Always run the relevant *_test.tscn for any story that has one before marking an AC as PASS."
+
         _AI_PROMPT="${_test_notes_section}Code review for story ${STORY_KEY}.
 
 STEP 1 — READ THE STORY: Read ${STORIES_DIR}/${STORY_KEY}*.md for the full requirements and acceptance criteria.
@@ -1378,9 +1385,9 @@ STEP 3 — GENERAL CODE REVIEW of all changes for this story:
 - Bugs, edge cases, off-by-one errors
 - Missing or incorrect error handling
 - Best-practice violations for the project tech stack
-- Anything the automated tests do not cover
+- Anything the automated tests do not cover${_cr_test_hint}
 
-If something requires manual testing by the developer, say 'MANUAL: <what to test>'.
+Only say 'MANUAL: <what to test>' for things that genuinely cannot be verified headlessly (e.g. visual output, F6 play-in-editor flows). Headless test scenes CAN be run — do not skip them.
 
 Summarize: AC results (pass/fail), bugs fixed, and anything left for manual verification."
 
