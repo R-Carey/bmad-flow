@@ -31,3 +31,4 @@ temp/
 
 # But ignore user-specific test configs
 test-config.sh
+.specstory/ 
