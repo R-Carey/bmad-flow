@@ -94,8 +94,7 @@ export BMAD_DEV_MODEL="claude-sonnet-4-6"     # reliable, no timeout issues
 
 # Phase 3: Code Review (different model = fresh perspective!)
 export BMAD_REVIEW_CLI="claude"
-export BMAD_REVIEW_MODEL="claude-opus-4-7-high"  # most thorough; review output is small so cost is manageable
-
+export BMAD_REVIEW_MODEL="claude-sonnet-4-6" 
 # ─────────────────────────────────────────────────────────────────────────
 # MODEL REFERENCE
 # ─────────────────────────────────────────────────────────────────────────
