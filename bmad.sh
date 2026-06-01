@@ -555,6 +555,11 @@ run_ai() {
         # Copilot CLI uses dots in version numbers (claude-sonnet-4.6), not dashes (4-6).
         # Normalize: convert digit-dash-digit → digit.digit so both CLI configs work.
         local copilot_model=$(echo "$model" | sed 's/\([0-9]\)-\([0-9]\)/\1.\2/g')
+        
+        # Configurable timeout to work around Copilot SDK hang bug (#2911)
+        # Default 18 minutes = 1080 seconds
+        local timeout_secs="${BMAD_COPILOT_TIMEOUT:-1080}"
+        
         if [ -n "$copilot_model" ]; then
             $COPILOT_BIN -p "$prompt" --model "$copilot_model" --allow-all-tools > "$output_file" 2>&1 &
         else
@@ -562,8 +567,59 @@ run_ai() {
         fi
         local ai_pid=$!
         show_progress $ai_pid
-        wait $ai_pid
+        
+        # Poll with hard timeout to work around Copilot SDK hang bug
+        # See: https://github.com/github/copilot-cli/issues/2911
+        local elapsed=0
+        local timed_out=false
+        while kill -0 $ai_pid 2>/dev/null; do
+            sleep 5
+            elapsed=$((elapsed + 5))
+            if [ $elapsed -ge $timeout_secs ]; then
+                timed_out=true
+                kill $ai_pid 2>/dev/null
+                sleep 1
+                kill -9 $ai_pid 2>/dev/null
+                wait $ai_pid 2>/dev/null
+                break
+            fi
+        done
+        
+        # If not timed out, wait for normal completion
+        if [ "$timed_out" = false ]; then
+            wait $ai_pid
+        fi
         local exit_code=$?
+        
+        # Handle timeout case
+        if [ "$timed_out" = true ]; then
+            local git_changes=$(git status --porcelain 2>/dev/null | wc -l | tr -d ' ')
+            local output_lines=$(wc -l < "$output_file" 2>/dev/null | tr -d ' ')
+            
+            if [ "$git_changes" -gt 0 ] || [ "$output_lines" -gt 50 ]; then
+                # Work was done despite hang - show output and continue
+                echo ""
+                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                echo -e "${YELLOW}⏱  Copilot hit timeout but work appears complete${NC}"
+                echo -e "${CYAN}   Git changes: ${git_changes} files | Output: ${output_lines} lines${NC}"
+                echo -e "${YELLOW}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                # Fall through to display output
+            else
+                # No work done - clean failure with retry guidance
+                echo ""
+                echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                echo -e "${RED}⚠️  Copilot timed out with no output${NC}"
+                echo -e "${YELLOW}   This is a known Copilot SDK bug (#2911)${NC}"
+                echo -e "${YELLOW}   See: https://github.com/github/copilot-cli/issues/2911${NC}"
+                echo ""
+                echo -e "${CYAN}Retry options:${NC}"
+                echo -e "  ${BOLD}./bmad.sh ${COMMAND} ${STORY_KEY} --cli claude${NC}  ${GREEN}← recommended${NC}"
+                echo -e "  ${BOLD}./bmad.sh ${COMMAND} ${STORY_KEY}${NC}               ← retry Copilot"
+                echo -e "${RED}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}"
+                rm -f "$output_file"
+                return 1
+            fi
+        fi
         
         # Check for model not available error — only fire when exit_code is non-zero
         # to avoid false positives from AI output containing phrases like "No matches found"

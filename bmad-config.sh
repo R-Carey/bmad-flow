@@ -53,6 +53,13 @@ export BMAD_TEST_FAIL_INDICATOR=""
 export BMAD_CLAUDE_BIN="claude"
 export BMAD_COPILOT_BIN="copilot"
 
+# Copilot CLI timeout in seconds (workaround for SDK bug #2911)
+# The Copilot SDK can hang indefinitely on large tool-call payloads.
+# This forces termination after the specified time.
+# Default: 1080 (18 minutes). Increase for very complex stories.
+# See: https://github.com/github/copilot-cli/issues/2911
+export BMAD_COPILOT_TIMEOUT=1080
+
 # ─────────────────────────────────────────────────────────────────────────
 # DEFAULT AI MODELS (Model-Centric Configuration)
 # ─────────────────────────────────────────────────────────────────────────
