@@ -77,7 +77,7 @@ Step 2: Implement
          
 Step 3: Code Review
 ┌─────────────────────────────────────┐
-│  ./bmad.sh code-review 2-7          │  GPT 5.3 Codex
+│  ./bmad.sh code-review 2-7          │  Claude Sonnet 4.6
 └─────────────────────────────────────┘
          │
          ├─ Reviews code
@@ -180,8 +180,8 @@ Key variables in `bmad-config.sh`:
 | `BMAD_FILE_EXTENSIONS` | Extensions to validate | `".gd .tscn .tres"` |
 | `BMAD_DEV_CLI` | CLI for dev-story | `"claude"` |
 | `BMAD_DEV_MODEL` | Model for dev-story | `"claude-sonnet-4-6"` |
-| `BMAD_REVIEW_CLI` | CLI for code-review | `"copilot"` |
-| `BMAD_REVIEW_MODEL` | Model for code-review | `"gpt-5.3-codex"` |
+| `BMAD_REVIEW_CLI` | CLI for code-review | `"claude"` |
+| `BMAD_REVIEW_MODEL` | Model for code-review | `"claude-sonnet-4-6"` |
 | `BMAD_APP_NOUN` | Noun in test-pause messages | `"game"`, `"app"`, `"service"` |
 | `BMAD_GIT_COAUTHOR` | Co-authored-by trailer in auto-commits | `"Bot <bot@example.com>"` |
 | `BMAD_TEST_CMD` | Command AI runs to execute tests | `"./run_tests.sh"`, `"npm test"`, `"pytest"` |
@@ -198,13 +198,13 @@ Key variables in `bmad-config.sh`:
 Phase          Default CLI    Default Model       Why?
 ─────────────────────────────────────────────────────────────
 create-story   claude         sonnet             Fast, good docs
-dev-story      claude         claude-sonnet-4-6  Creative, Godot
-code-review    copilot        gpt-5.3-codex      Fresh eyes, strict
+dev-story      claude         claude-sonnet-4-6  Creative, reliable
+code-review    claude         claude-sonnet-4-6  Thorough review
 ```
 
-**Override**:
+**Override** (optional - use different model for fresh perspective):
 ```bash
-./bmad.sh dev-story 2-7 --cli copilot --model gpt-5.3-codex
+./bmad.sh code-review 2-7 --cli copilot --model gpt-5.3-codex
 ```
 
 ---

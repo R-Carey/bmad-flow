@@ -30,8 +30,12 @@ export BMAD_CREATE_MODEL="sonnet"
 export BMAD_DEV_CLI="claude"
 export BMAD_DEV_MODEL="claude-sonnet-4-6"  # Great for React/TypeScript
 
-export BMAD_REVIEW_CLI="copilot"
-export BMAD_REVIEW_MODEL="gpt-5.3-codex"  # Catches React Native gotchas
+export BMAD_REVIEW_CLI="claude"
+export BMAD_REVIEW_MODEL="claude-sonnet-4-6"
+
+# Optional: Use GPT for review (catches different issues)
+# export BMAD_REVIEW_CLI="copilot"
+# export BMAD_REVIEW_MODEL="gpt-5.3-codex"
 ```
 
 ## Testing Workflow
@@ -78,7 +82,7 @@ The system validates these files:
 # 3. Pause - TEST on device
 #    npx expo start
 #    Test login/logout/register flows
-# 4. GPT reviews React Native patterns, mobile UX
+# 4. Claude reviews React Native patterns, mobile UX
 # 5. Done ✓
 ```
 

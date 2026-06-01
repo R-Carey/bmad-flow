@@ -37,7 +37,7 @@ Automates the tedious parts of BMAD development:
 
 - ✅ **Visual Progress Tracking** - See epic status with progress bars
 - ✅ **Automated Workflows** - Run full story cycles with one command
-- ✅ **Multi-Model Strategy** - Claude for dev, GPT for review (catches more bugs!)
+- ✅ **Multi-Model Support** - Use different AI models per phase (optional, catches more bugs!)
 - ✅ **Smart Validation** - Pre-flight checks and artifact verification before executing
 - ✅ **Active Config Display** - `./bmad.sh config` shows all settings + binary status at a glance
 - ✅ **Auto-Commits** - Git commits after each phase
@@ -151,17 +151,15 @@ Edit `bmad-config.sh` to match your project:
 export BMAD_STATUS_FILE="_bmad-output/implementation-artifacts/sprint-status.yaml"
 export BMAD_STORIES_DIR="_bmad-output/implementation-artifacts"
 
-# Technology stack
-export BMAD_TECH_STACK="Your Technology"  # e.g., "React", "Unity", "Django"
-
-# File extensions to validate
-export BMAD_FILE_EXTENSIONS=".tsx .ts .jsx .js"  # Adjust for your tech
-
-# AI models (optional - defaults are good)
+# AI models (defaults use Claude for all phases)
 export BMAD_DEV_CLI="claude"
 export BMAD_DEV_MODEL="claude-sonnet-4-6"
-export BMAD_REVIEW_CLI="copilot"  # or "claude"
-export BMAD_REVIEW_MODEL="gpt-5.3-codex"
+export BMAD_REVIEW_CLI="claude"
+export BMAD_REVIEW_MODEL="claude-sonnet-4-6"
+
+# Optional: Use different models per phase for diverse perspectives
+# export BMAD_REVIEW_CLI="copilot"
+# export BMAD_REVIEW_MODEL="gpt-5.3-codex"
 
 # General
 export BMAD_APP_NOUN="app"            # Noun used in test-pause messages: "game", "app", "service"
@@ -254,18 +252,18 @@ See [examples/](examples/) for configurations for specific technologies.
 # Shows progress: "Story 3/8 complete"
 ```
 
-### Multi-Model Strategy
+### Multi-Model Strategy (Optional)
 
 ```bash
-# Use defaults (recommended)
+# Use defaults (Claude for all phases)
 ./bmad.sh cycle 2-7
-# Uses: Claude for implementation
-#       GPT for review (different perspective = more bugs caught)
 
-# Override for specific story
+# Override for specific story - use different model for fresh perspective
 ./bmad.sh dev-story 2-7 --cli claude --model opus
 ./bmad.sh code-review 2-7 --cli copilot --model gpt-5.3-codex
 ```
+
+**Tip**: Using different models for dev vs review can catch more bugs (different AI = different blind spots).
 
 ---
 
@@ -328,25 +326,38 @@ See [examples/](examples/) for configurations for specific technologies.
 
 ---
 
-## 🤖 Multi-Model Strategy
+## 🤖 Multi-Model Strategy (Optional)
+
+### Default: Claude for All Phases
+
+By default, BMAD uses Claude for all phases. This works well and keeps things simple.
+
+```bash
+# In bmad-config.sh (default)
+export BMAD_DEV_CLI="claude"
+export BMAD_DEV_MODEL="claude-sonnet-4-6"
+
+export BMAD_REVIEW_CLI="claude"
+export BMAD_REVIEW_MODEL="claude-sonnet-4-6"
+```
 
 ### Why Use Different Models?
 
-Every AI has blind spots. Using different models for different phases catches more issues:
+Every AI has blind spots. Using different models for different phases can catch more issues:
 
 - **Claude** (Dev) - Creative, great at implementation
 - **GPT** (Review) - Analytical, catches different bugs
 
 **Result**: Higher quality code with diverse AI perspectives
 
-### Configuration
+### Multi-Model Configuration (Optional)
 
 ```bash
-# In bmad-config.sh
-export BMAD_DEV_CLI="claude"              # Implementation
+# In bmad-config.sh - use GPT for review
+export BMAD_DEV_CLI="claude"
 export BMAD_DEV_MODEL="claude-sonnet-4-6"
 
-export BMAD_REVIEW_CLI="copilot"          # Review
+export BMAD_REVIEW_CLI="copilot"          # Different AI for review
 export BMAD_REVIEW_MODEL="gpt-5.3-codex"
 ```
 
@@ -356,9 +367,8 @@ export BMAD_REVIEW_MODEL="gpt-5.3-codex"
 # Use different model for complex story
 ./bmad.sh dev-story 2-10 --cli claude --model opus
 
-# Use same model for both phases
-./bmad.sh dev-story 2-7 --cli claude
-./bmad.sh code-review 2-7 --cli claude
+# Use GPT for review on specific story
+./bmad.sh code-review 2-7 --cli copilot --model gpt-5.3-codex
 ```
 
 ---

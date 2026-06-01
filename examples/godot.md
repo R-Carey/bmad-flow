@@ -30,8 +30,12 @@ export BMAD_CREATE_MODEL="sonnet"
 export BMAD_DEV_CLI="claude"
 export BMAD_DEV_MODEL="claude-sonnet-4-6"
 
-export BMAD_REVIEW_CLI="copilot"
-export BMAD_REVIEW_MODEL="gpt-5.3-codex"
+export BMAD_REVIEW_CLI="claude"
+export BMAD_REVIEW_MODEL="claude-sonnet-4-6"
+
+# Optional: Use GPT for review (different perspective)
+# export BMAD_REVIEW_CLI="copilot"
+# export BMAD_REVIEW_MODEL="gpt-5.3-codex"
 ```
 
 ## Testing Workflow
@@ -68,7 +72,7 @@ The system validates these files are referenced in stories:
 #    - Player.tscn scene
 #    - Input actions
 # 3. Pause - TEST in Godot
-# 4. GPT reviews GDScript code, scene structure
+# 4. Claude reviews GDScript code, scene structure
 # 5. Done ✓
 ```
 

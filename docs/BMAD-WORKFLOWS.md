@@ -126,7 +126,7 @@ These run a single phase of the BMAD workflow.
 ./bmad.sh code-review 2-7 --cli copilot --model gpt-5.3-codex
 ```
 
-**Default Model**: GPT 5.3 Codex (analytical, catches different issues than Claude)
+**Default Model**: Claude Sonnet 4.6 (thorough review; optionally use GPT for a different perspective)
 
 ---
 
@@ -465,7 +465,25 @@ Suggest: ./bmad.sh retro 2
 
 ## Multi-Model Strategy
 
-### Why Use Different Models?
+### Default: Claude for All Phases
+
+By default, BMAD uses Claude for all phases. This keeps things simple and works well.
+
+```bash
+# Phase 1: Create Story
+# Model: Claude Sonnet (fast)
+# Why: Good at documentation, understands BMAD format
+
+# Phase 2: Implementation  
+# Model: Claude Sonnet 4.6 (creative)
+# Why: Excellent at code generation, reliable
+
+# Phase 3: Code Review
+# Model: Claude Sonnet 4.6
+# Why: Thorough review, consistent quality
+```
+
+### Why Use Different Models? (Optional)
 
 **The Problem**: Every AI has blind spots
 - Claude might implement a feature but miss edge cases
@@ -477,42 +495,31 @@ Suggest: ./bmad.sh retro 2
 
 ---
 
-### Recommended Setup (Default in Script)
-
-```bash
-# Phase 1: Create Story
-# Model: Claude Sonnet (fast)
-# Why: Good at documentation, understands BMAD format
-
-# Phase 2: Implementation  
-# Model: Claude Sonnet 4.6 (creative)
-# Why: Excellent at code generation, understands Godot
-
-# Phase 3: Code Review
-# Model: GPT 5.3 Codex (analytical)
-# Why: Different perspective, catches different issues
-```
-
 ### How to Customize
 
-**Edit the script** (`bmad.sh` lines 17-25):
+**Edit `bmad-config.sh`**:
 
 ```bash
-DEFAULT_CREATE_CLI="claude"
-DEFAULT_CREATE_MODEL="sonnet"
+# Default (Claude for all phases)
+BMAD_CREATE_CLI="claude"
+BMAD_CREATE_MODEL="sonnet"
 
-DEFAULT_DEV_CLI="claude"
-DEFAULT_DEV_MODEL="claude-sonnet-4-6"
+BMAD_DEV_CLI="claude"
+BMAD_DEV_MODEL="claude-sonnet-4-6"
 
-DEFAULT_REVIEW_CLI="copilot"
-DEFAULT_REVIEW_MODEL="gpt-5.3-codex"
+BMAD_REVIEW_CLI="claude"
+BMAD_REVIEW_MODEL="claude-sonnet-4-6"
+
+# Optional: Use GPT for review (different perspective)
+# BMAD_REVIEW_CLI="copilot"
+# BMAD_REVIEW_MODEL="gpt-5.3-codex"
 ```
 
 **Or override per-command**:
 
 ```bash
-# Use GPT for everything
-./bmad.sh dev-story 2-7 --cli copilot --model gpt-5.3-codex
+# Use GPT for review on specific story
+./bmad.sh code-review 2-7 --cli copilot --model gpt-5.3-codex
 
 # Use high-reasoning Claude for complex story
 ./bmad.sh dev-story 2-7 --cli claude --model opus

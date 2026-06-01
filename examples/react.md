@@ -30,8 +30,12 @@ export BMAD_CREATE_MODEL="sonnet"
 export BMAD_DEV_CLI="claude"
 export BMAD_DEV_MODEL="claude-sonnet-4-6"
 
-export BMAD_REVIEW_CLI="copilot"
-export BMAD_REVIEW_MODEL="gpt-5.3-codex"
+export BMAD_REVIEW_CLI="claude"
+export BMAD_REVIEW_MODEL="claude-sonnet-4-6"
+
+# Optional: Use GPT for review (different perspective)
+# export BMAD_REVIEW_CLI="copilot"
+# export BMAD_REVIEW_MODEL="gpt-5.3-codex"
 ```
 
 ## Testing Workflow
@@ -78,7 +82,7 @@ The system validates these files:
 # 3. Pause - TEST in browser
 #    npm run dev
 #    Test UI, interactions, data fetching
-# 4. GPT reviews React patterns, hooks, performance
+# 4. Claude reviews React patterns, hooks, performance
 # 5. Done ✓
 ```
 

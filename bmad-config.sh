@@ -78,8 +78,8 @@ export BMAD_COPILOT_TIMEOUT=1080
 #   Alt:  gpt-5.5-medium          (strong general coding)
 #
 # Phase 3 - Code Review (Analytical, bug detection):
-#   Best: gpt-5.3-codex           (analytical, catches edge cases)
-#   Alt:  claude-sonnet-4-6       (good second opinion)
+#   Best: claude-sonnet-4-6       (thorough, consistent)
+#   Alt:  gpt-5.3-codex           (different perspective, catches different bugs)
 #
 # 💡 TIP: Use DIFFERENT models for dev vs review to catch more bugs!
 # ─────────────────────────────────────────────────────────────────────────

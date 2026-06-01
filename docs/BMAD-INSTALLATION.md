@@ -146,11 +146,15 @@ export BMAD_FILE_EXTENSIONS=".gd .tscn .tres"  # Godot
 # React:  ".tsx .ts .jsx .js"
 # Django: ".py .html .css"
 
-# 4. AI Models (optional - defaults are good)
+# 4. AI Models (defaults use Claude for all phases)
 export BMAD_DEV_CLI="claude"
 export BMAD_DEV_MODEL="claude-sonnet-4-6"
-export BMAD_REVIEW_CLI="copilot"
-export BMAD_REVIEW_MODEL="gpt-5.3-codex"
+export BMAD_REVIEW_CLI="claude"
+export BMAD_REVIEW_MODEL="claude-sonnet-4-6"
+
+# Optional: Use different model for review (fresh perspective)
+# export BMAD_REVIEW_CLI="copilot"
+# export BMAD_REVIEW_MODEL="gpt-5.3-codex"
 ```
 
 ---
@@ -518,11 +522,11 @@ echo "Running custom validation..."
 # Your validation logic here
 ```
 
-### Multiple AI Providers
+### Multiple AI Providers (Optional)
 
 Configure different AIs per phase in `bmad-config.sh`:
 ```bash
-# Use Claude for everything
+# Default: Use Claude for everything
 export BMAD_DEV_CLI="claude"
 export BMAD_REVIEW_CLI="claude"
 
@@ -530,7 +534,7 @@ export BMAD_REVIEW_CLI="claude"
 export BMAD_DEV_CLI="copilot"
 export BMAD_REVIEW_CLI="copilot"
 
-# Or mix (recommended - catches more issues)
+# Or mix (optional - catches more issues with diverse perspectives)
 export BMAD_DEV_CLI="claude"      # Creative implementation
 export BMAD_REVIEW_CLI="copilot"  # Analytical review
 ```
