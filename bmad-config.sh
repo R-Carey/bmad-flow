@@ -90,11 +90,11 @@ export BMAD_CREATE_MODEL="sonnet"
 
 # Phase 2: Implementation
 export BMAD_DEV_CLI="claude"
-export BMAD_DEV_MODEL="claude-sonnet-4-6"
+export BMAD_DEV_MODEL="claude-sonnet-4-6"     # reliable, no timeout issues
 
 # Phase 3: Code Review (different model = fresh perspective!)
-export BMAD_REVIEW_CLI="copilot"
-export BMAD_REVIEW_MODEL="gpt-5.3-codex"
+export BMAD_REVIEW_CLI="claude"
+export BMAD_REVIEW_MODEL="claude-opus-4-7-high"  # most thorough; review output is small so cost is manageable
 
 # ─────────────────────────────────────────────────────────────────────────
 # MODEL REFERENCE
